@@ -1,61 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1a1a2e;
-  --primary: #ff385c;
-  --primary-dark: #e31c5f;
-  --primary-light: #ff5a7d;
-  --secondary: #00b4d8;
-  --secondary-dark: #0096b7;
-  --accent: #ffc107;
-  --success: #00c853;
-  --warning: #ff9800;
-  --danger: #f44336;
-  --gray-50: #f8f9fa;
-  --gray-100: #f1f3f5;
-  --gray-200: #e9ecef;
-  --gray-300: #dee2e6;
-  --gray-400: #ced4da;
-  --gray-500: #adb5bd;
-  --gray-600: #868e96;
-  --gray-700: #495057;
-  --gray-800: #343a40;
-  --gray-900: #212529;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow: 0 2px 8px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* Sahibinden colors */
+  --sahi-yellow: #FFE800;
+  --sahi-yellow-dark: #E6D000;
+  --sahi-blue: #0654BA;
+  --sahi-blue-dark: #0051A3;
+  --sahi-orange: #FF6600;
+  --sahi-dark: #1a1a27;
+  --sahi-price-red: #D00000;
+  --sahi-green: #00A13A;
+  --sahi-bg: #F2F2F2;
+
+  /* Airbnb colors */
+  --airbnb-rausch: #FF385C;
+  --airbnb-rausch-dark: #E00B41;
+  --airbnb-hof: #222222;
+  --airbnb-foggy: #6A6A6A;
+  --airbnb-deco: #DDDDDD;
+  --airbnb-white: #FFFFFF;
+  --airbnb-success: #008A05;
+  --airbnb-warning: #E07912;
+
+  /* Shadows */
+  --shadow-card: 0px 0px 0px 1px rgba(0,0,0,0.02), 0px 2px 6px rgba(0,0,0,0.04), 0px 4px 8px rgba(0,0,0,0.10);
+  --shadow-search: 0px 1px 2px rgba(0,0,0,0.08), 0px 4px 12px rgba(0,0,0,0.05);
+  --shadow-high: 0 8px 28px rgba(0,0,0,0.28);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-dark: var(--primary-dark);
-  --color-primary-light: var(--primary-light);
-  --color-secondary: var(--secondary);
-  --color-secondary-dark: var(--secondary-dark);
-  --color-accent: var(--accent);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
-  --color-gray-50: var(--gray-50);
-  --color-gray-100: var(--gray-100);
-  --color-gray-200: var(--gray-200);
-  --color-gray-300: var(--gray-300);
-  --color-gray-400: var(--gray-400);
-  --color-gray-500: var(--gray-500);
-  --color-gray-600: var(--gray-600);
-  --color-gray-700: var(--gray-700);
-  --color-gray-800: var(--gray-800);
-  --color-gray-900: var(--gray-900);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-sahi-yellow: var(--sahi-yellow);
+  --color-sahi-yellow-dark: var(--sahi-yellow-dark);
+  --color-sahi-blue: var(--sahi-blue);
+  --color-sahi-blue-dark: var(--sahi-blue-dark);
+  --color-sahi-orange: var(--sahi-orange);
+  --color-sahi-dark: var(--sahi-dark);
+  --color-sahi-price-red: var(--sahi-price-red);
+  --color-sahi-green: var(--sahi-green);
+  --color-sahi-bg: var(--sahi-bg);
+  --color-airbnb-rausch: var(--airbnb-rausch);
+  --color-airbnb-rausch-dark: var(--airbnb-rausch-dark);
+  --color-airbnb-hof: var(--airbnb-hof);
+  --color-airbnb-foggy: var(--airbnb-foggy);
+  --color-airbnb-deco: var(--airbnb-deco);
 }
 
 * {
@@ -65,182 +52,72 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #FFFFFF;
+  color: #222222;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: var(--gray-100);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--gray-400);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-500);
-}
+html { scroll-behavior: smooth; }
 
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
-}
+/* Scrollbar hide for category bars */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Image hover zoom */
-.img-zoom {
-  transition: transform 0.4s ease;
-}
-.img-zoom:hover {
-  transform: scale(1.05);
-}
+/* Airbnb card hover */
+.airbnb-card { transition: transform 0.2s ease; }
+.airbnb-card:hover { transform: scale(1.02); }
 
-/* Card hover effect */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-}
+/* Airbnb search shadow */
+.search-shadow { box-shadow: var(--shadow-search); }
+.search-shadow:hover { box-shadow: 0px 2px 4px rgba(0,0,0,0.12), 0px 8px 16px rgba(0,0,0,0.08); }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* Card shadow */
+.card-shadow { box-shadow: var(--shadow-card); }
 
-/* Hero gradient */
-.hero-gradient {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
+/* Sahibinden yellow gradient */
+.sahi-header { background: #FFE800; }
 
-/* Fade in animation */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
+/* Price red */
+.price-red { color: #D00000; font-weight: 700; }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out forwards;
-}
+/* Active category underline */
+.cat-active { border-bottom: 2px solid #222222; }
+.cat-inactive { border-bottom: 2px solid transparent; }
+.cat-inactive:hover { border-bottom: 2px solid #DDDDDD; }
 
-/* Price tag style */
-.price-tag {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  display: inline-block;
-}
+/* Image aspect ratio like Airbnb */
+.aspect-airbnb { aspect-ratio: 20/19; }
 
-/* Badge styles */
-.badge-superhost {
-  background: var(--gray-900);
-  color: white;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+/* Dot indicators */
+.dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.6); transition: all 0.2s; }
+.dot-active { width: 7px; height: 7px; background: #FFFFFF; }
 
-/* Tab active indicator */
-.tab-active {
-  position: relative;
-}
-.tab-active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--primary);
-  border-radius: 3px;
-}
+/* Fade animation */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.animate-fadeIn { animation: fadeIn 0.3s ease; }
 
-/* Input focus ring */
+/* Focus styles */
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(255, 56, 92, 0.1);
+  border-color: #222222;
+  box-shadow: 0 0 0 2px rgba(34,34,34,0.1);
 }
 
-/* Button base */
-.btn-primary {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 56, 92, 0.3);
-}
+/* Sahibinden list row hover */
+.sahi-row:hover { background: #f8f8f0; }
 
-.btn-outline {
-  background: transparent;
-  color: var(--gray-800);
-  border: 1.5px solid var(--gray-300);
-  padding: 10px 20px;
-  border-radius: var(--radius-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-outline:hover {
-  border-color: var(--gray-800);
-  background: var(--gray-50);
-}
-
-/* Sahibinden-style yellow banner */
-.banner-yellow {
-  background: linear-gradient(135deg, #ffd700, #ffb800);
-}
-
-/* Image carousel dot */
-.dot-active {
+/* Airbnb pill button */
+.pill-btn {
+  border: 1px solid #DDDDDD;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
   background: white;
-  width: 8px;
-  height: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-.dot-inactive {
-  background: rgba(255,255,255,0.5);
-  width: 6px;
-  height: 6px;
-}
+.pill-btn:hover { border-color: #222222; }
+.pill-btn-active { border-color: #222222; background: #F7F7F7; }

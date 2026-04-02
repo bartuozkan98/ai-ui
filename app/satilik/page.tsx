@@ -9,7 +9,7 @@ import { properties, propertyTypes, roomOptions, cities } from "../data/properti
 
 export default function SatilikPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-gray-500">Yükleniyor...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-airbnb-foggy">Yükleniyor...</div>}>
       <SatilikContent />
     </Suspense>
   );
@@ -25,129 +25,149 @@ function SatilikContent() {
   const [priceRange, setPriceRange] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
     let result = properties.filter((p) => p.type === "sale");
-
     if (selectedCity) result = result.filter((p) => p.location.city === selectedCity);
     if (selectedType) result = result.filter((p) => p.propertyType === selectedType);
     if (selectedRooms) result = result.filter((p) => p.features.rooms === selectedRooms);
     if (priceRange) {
       const [min, max] = priceRange.split("-").map(Number);
-      result = result.filter((p) => {
-        if (max) return p.price >= min && p.price <= max;
-        return p.price >= min;
-      });
+      result = result.filter((p) => max ? p.price >= min && p.price <= max : p.price >= min);
     }
-
     switch (sortBy) {
       case "price-asc": result.sort((a, b) => a.price - b.price); break;
       case "price-desc": result.sort((a, b) => b.price - a.price); break;
       case "newest": result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
       case "popular": result.sort((a, b) => b.views - a.views); break;
     }
-
     return result;
   }, [selectedCity, selectedType, selectedRooms, priceRange, sortBy]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-sahi-bg">
       <Header />
 
-      {/* Breadcrumb & Title */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <a href="/" className="hover:text-primary">Ana Sayfa</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-            <span className="text-gray-900">Satılık Emlak</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Satılık Emlak İlanları</h1>
-              <p className="text-sm text-gray-500 mt-1">{filtered.length} ilan bulundu</p>
-            </div>
+      {/* Breadcrumb - Sahibinden style */}
+      <div className="bg-white border-b border-[#e0e0e0]">
+        <div className="max-w-[1280px] mx-auto px-4 py-2">
+          <div className="flex items-center gap-1.5 text-[12px] text-airbnb-foggy">
+            <a href="/" className="hover:text-sahi-blue">Ana Sayfa</a>
+            <span>&gt;</span>
+            <a href="#" className="hover:text-sahi-blue">Emlak</a>
+            <span>&gt;</span>
+            <span className="text-[#333]">Satılık</span>
           </div>
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-[105px] z-30">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="border border-gray-300 rounded-full px-4 py-2 text-sm bg-white hover:border-gray-400 transition-colors cursor-pointer shrink-0">
-              <option value="">Tüm Şehirler</option>
-              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+      <div className="max-w-[1280px] mx-auto px-4 py-4 flex gap-5 flex-1 w-full">
+        {/* Left sidebar filters - Sahibinden style */}
+        <aside className="w-[220px] shrink-0 hidden lg:block">
+          <div className="bg-white border border-[#e0e0e0] rounded">
+            <div className="p-3 bg-[#f8f8f8] border-b border-[#e0e0e0]">
+              <h3 className="text-[13px] font-bold text-[#333]">Filtreler</h3>
+            </div>
 
-            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="border border-gray-300 rounded-full px-4 py-2 text-sm bg-white hover:border-gray-400 transition-colors cursor-pointer shrink-0">
-              <option value="">Emlak Tipi</option>
-              {propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+            {/* City filter */}
+            <div className="p-3 border-b border-[#f0f0f0]">
+              <label className="block text-[12px] font-semibold text-[#333] mb-1.5">Şehir</label>
+              <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="w-full border border-[#ddd] rounded px-2 py-1.5 text-[12px] cursor-pointer">
+                <option value="">Tüm Şehirler</option>
+                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
 
-            <select value={selectedRooms} onChange={(e) => setSelectedRooms(e.target.value)} className="border border-gray-300 rounded-full px-4 py-2 text-sm bg-white hover:border-gray-400 transition-colors cursor-pointer shrink-0">
-              <option value="">Oda Sayısı</option>
-              {roomOptions.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            {/* Property type */}
+            <div className="p-3 border-b border-[#f0f0f0]">
+              <label className="block text-[12px] font-semibold text-[#333] mb-1.5">Emlak Tipi</label>
+              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full border border-[#ddd] rounded px-2 py-1.5 text-[12px] cursor-pointer">
+                <option value="">Tümü</option>
+                {propertyTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
 
-            <select value={priceRange} onChange={(e) => setPriceRange(e.target.value)} className="border border-gray-300 rounded-full px-4 py-2 text-sm bg-white hover:border-gray-400 transition-colors cursor-pointer shrink-0">
-              <option value="">Fiyat Aralığı</option>
-              <option value="0-2000000">0 - 2.000.000 TL</option>
-              <option value="2000000-5000000">2M - 5M TL</option>
-              <option value="5000000-10000000">5M - 10M TL</option>
-              <option value="10000000-99999999999">10M+ TL</option>
-            </select>
+            {/* Room count */}
+            <div className="p-3 border-b border-[#f0f0f0]">
+              <label className="block text-[12px] font-semibold text-[#333] mb-1.5">Oda Sayısı</label>
+              <select value={selectedRooms} onChange={(e) => setSelectedRooms(e.target.value)} className="w-full border border-[#ddd] rounded px-2 py-1.5 text-[12px] cursor-pointer">
+                <option value="">Tümü</option>
+                {roomOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
 
-            <button onClick={() => setShowFilters(!showFilters)} className="border border-gray-300 rounded-full px-4 py-2 text-sm bg-white hover:border-gray-400 transition-colors flex items-center gap-2 shrink-0">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
-              Tüm Filtreler
-            </button>
+            {/* Price range */}
+            <div className="p-3 border-b border-[#f0f0f0]">
+              <label className="block text-[12px] font-semibold text-[#333] mb-1.5">Fiyat</label>
+              <select value={priceRange} onChange={(e) => setPriceRange(e.target.value)} className="w-full border border-[#ddd] rounded px-2 py-1.5 text-[12px] cursor-pointer">
+                <option value="">Tüm Fiyatlar</option>
+                <option value="0-2000000">0 - 2.000.000 TL</option>
+                <option value="2000000-5000000">2M - 5M TL</option>
+                <option value="5000000-10000000">5M - 10M TL</option>
+                <option value="10000000-99999999999">10.000.000+ TL</option>
+              </select>
+            </div>
 
-            <div className="ml-auto flex items-center gap-2 shrink-0">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-gray-300 rounded-full px-4 py-2 text-sm bg-white cursor-pointer">
-                <option value="newest">En Yeni</option>
+            <div className="p-3">
+              <button className="w-full bg-sahi-blue hover:bg-sahi-blue-dark text-white text-[12px] font-semibold py-2 rounded transition-colors">
+                Ara
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* Top bar */}
+          <div className="bg-white border border-[#e0e0e0] rounded p-3 mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-[16px] font-bold text-[#333]">Satılık Konut İlanları</h1>
+              <p className="text-[12px] text-airbnb-foggy">{filtered.length} ilan bulundu</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Mobile filters */}
+              <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="lg:hidden pill-btn text-[12px] py-1.5">
+                <option value="">Şehir</option>
+                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-[#ddd] rounded px-2 py-1.5 text-[12px] cursor-pointer">
+                <option value="newest">Tarihe Göre</option>
                 <option value="price-asc">Fiyat (Artan)</option>
                 <option value="price-desc">Fiyat (Azalan)</option>
                 <option value="popular">Popüler</option>
               </select>
 
-              <div className="flex border border-gray-300 rounded-full overflow-hidden">
-                <button onClick={() => setViewMode("grid")} className={`p-2 ${viewMode === "grid" ? "bg-gray-900 text-white" : "bg-white text-gray-500"}`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+              <div className="flex border border-[#ddd] rounded overflow-hidden">
+                <button onClick={() => setViewMode("grid")} className={`p-1.5 ${viewMode === "grid" ? "bg-sahi-blue text-white" : "bg-white text-[#666]"}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                 </button>
-                <button onClick={() => setViewMode("list")} className={`p-2 ${viewMode === "list" ? "bg-gray-900 text-white" : "bg-white text-gray-500"}`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
+                <button onClick={() => setViewMode("list")} className={`p-1.5 ${viewMode === "list" ? "bg-sahi-blue text-white" : "bg-white text-[#666]"}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Results */}
-      <div className="max-w-7xl mx-auto px-4 py-8 flex-1">
-        {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1" className="mx-auto mb-4">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <h3 className="text-lg font-semibold text-gray-700">İlan Bulunamadı</h3>
-            <p className="text-gray-500 mt-1">Filtrelerinizi değiştirmeyi deneyin</p>
-          </div>
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filtered.map((property) => (
-              <PropertyCard key={property.id} property={property} layout="grid" />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filtered.map((property) => (
-              <PropertyCard key={property.id} property={property} layout="list" />
-            ))}
-          </div>
-        )}
+          {/* Results */}
+          {filtered.length === 0 ? (
+            <div className="bg-white border border-[#e0e0e0] rounded p-12 text-center">
+              <p className="text-[14px] text-airbnb-foggy">İlan bulunamadı. Filtrelerinizi değiştirmeyi deneyin.</p>
+            </div>
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-10">
+              {filtered.map((property) => (
+                <PropertyCard key={property.id} property={property} layout="grid" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((property) => (
+                <PropertyCard key={property.id} property={property} layout="list" />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <Footer />
