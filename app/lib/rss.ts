@@ -91,7 +91,7 @@ function toNewsItems(feed: any, url: string): NewsItem[] {
   return (feed?.items || []).map((it: any) => {
     const title = safeText(it.title);
     const link = pickLink(it);
-    const pubDate = safeText(it.pubDate || it.isoDate || it.published || "");
+    const pubDate = safeText(it.pubDate || it.isoDate || (it as any).published || "");
     return { title, link, pubDate, source };
   });
 }
@@ -134,7 +134,7 @@ export async function fetchBitcoinNews(limit = 60): Promise<NewsItem[]> {
       for (const it of feed.items || []) {
         const title = safeText(it.title);
         const link = pickLink(it);
-        const pubDate = safeText(it.pubDate || it.isoDate || it.published || "");
+        const pubDate = safeText(it.pubDate || it.isoDate || (it as any).published || "");
         const source = safeText(feed.title) || url;
 
         if (!title || !link) continue;
