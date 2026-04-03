@@ -11,6 +11,7 @@ export default function CategoryPage({ category, title }: { category: Category; 
   const [sortBy, setSortBy] = useState("popular");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { setListings(getListings()); }, []);
 
@@ -41,46 +42,63 @@ export default function CategoryPage({ category, title }: { category: Category; 
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      <div className="bg-white border-b border-[#ebebeb]">
-        <div className="max-w-[1280px] mx-auto px-4 py-3">
-          <div className="flex items-center gap-1.5 text-[12px] text-airbnb-foggy">
-            <a href="/" className="hover:text-airbnb-rausch">Ana Sayfa</a><span>&gt;</span><span className="text-airbnb-hof">{title}</span>
+
+      {/* Filter bar */}
+      <div className="sticky top-[80px] lg:top-[80px] z-40 bg-white border-b border-[#f0f0f0]">
+        <div className="max-w-[2520px] mx-auto xl:px-20 md:px-10 sm:px-4 px-4 py-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-[22px] font-semibold text-airbnb-hof mr-4 hidden md:block">{title}</h1>
+
+            {/* Date range */}
+            <div className="flex items-center border border-[#ddd] rounded-xl overflow-hidden hover:border-[#222] transition-colors">
+              <div className="px-3 py-2">
+                <div className="text-[10px] font-semibold text-airbnb-foggy uppercase">Giris</div>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-[13px] border-none p-0 bg-transparent w-[110px]" />
+              </div>
+              <div className="w-[1px] h-8 bg-[#ddd]" />
+              <div className="px-3 py-2">
+                <div className="text-[10px] font-semibold text-airbnb-foggy uppercase">Cikis</div>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-[13px] border-none p-0 bg-transparent w-[110px]" />
+              </div>
+            </div>
+
+            <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="border border-[#ddd] rounded-xl px-4 py-3 text-[13px] bg-white hover:border-[#222] transition-colors">
+              <option value="">Tum Sehirler</option>
+              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-[#ddd] rounded-xl px-4 py-3 text-[13px] bg-white hover:border-[#222] transition-colors">
+              <option value="popular">Populer</option>
+              <option value="price-asc">Fiyat (Artan)</option>
+              <option value="price-desc">Fiyat (Azalan)</option>
+              <option value="rating">Puan</option>
+            </select>
+
+            <span className="ml-auto text-[14px] text-airbnb-foggy shrink-0">
+              <strong className="text-airbnb-hof">{filtered.length}</strong> ilan bulundu
+            </span>
           </div>
-          <h1 className="text-[20px] font-bold text-airbnb-hof mt-1">{title}</h1>
         </div>
       </div>
 
-      <div className="border-b border-[#ebebeb] bg-white sticky top-[92px] z-40">
-        <div className="max-w-[1280px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 border border-[#ddd] rounded-full px-3 py-1.5 shrink-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-[13px] border-none p-0 w-[110px] bg-transparent" />
-            <span className="text-[#ddd]">→</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-[13px] border-none p-0 w-[110px] bg-transparent" />
-          </div>
-          <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="pill-btn text-[13px]">
-            <option value="">Tüm Şehirler</option>
-            {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="pill-btn text-[13px]">
-            <option value="popular">Popüler</option>
-            <option value="price-asc">Fiyat (Artan)</option>
-            <option value="price-desc">Fiyat (Azalan)</option>
-            <option value="rating">Puan</option>
-          </select>
-          <span className="ml-auto text-[13px] text-airbnb-foggy shrink-0">{filtered.length} {categoryLabels[category].toLowerCase()} bulundu</span>
-        </div>
-      </div>
+      {/* Results */}
+      <div className="max-w-[2520px] mx-auto xl:px-20 md:px-10 sm:px-4 px-4 py-8 flex-1 w-full">
+        {/* Mobile title */}
+        <h1 className="text-[22px] font-semibold text-airbnb-hof mb-6 md:hidden">{title}</h1>
 
-      <div className="max-w-[1280px] mx-auto px-4 py-8 flex-1 w-full">
         {filtered.length === 0 ? (
-          <div className="text-center py-20"><p className="text-[16px] text-airbnb-foggy">Uygun ilan bulunamadı.</p></div>
+          <div className="text-center py-24">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1" className="mx-auto mb-4"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <p className="text-[18px] font-semibold text-airbnb-hof">Uygun ilan bulunamadi</p>
+            <p className="text-[14px] text-airbnb-foggy mt-1">Tarih veya sehir filtresini degistirmeyi deneyin</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10">
             {filtered.map((listing) => <PropertyCard key={listing.id} listing={listing} />)}
           </div>
         )}
       </div>
+
       <Footer />
     </div>
   );

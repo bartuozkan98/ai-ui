@@ -25,131 +25,123 @@ export default function DashboardPage() {
 
   if (!loading && !user) {
     return (
-      <div className="min-h-screen flex flex-col"><Header />
+      <div className="min-h-screen flex flex-col bg-white"><Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-[20px] font-bold text-airbnb-hof mb-2">Giriş yapmalısınız</h1>
-            <Link href="/giris" className="bg-airbnb-rausch text-white px-6 py-2.5 rounded-lg font-semibold inline-block mt-2">Giriş Yap</Link>
+            <h1 className="text-[22px] font-semibold text-airbnb-hof mb-4">Giris yapin</h1>
+            <Link href="/giris" className="bg-airbnb-rausch text-white px-8 py-3 rounded-xl font-semibold inline-block">Giris Yap</Link>
           </div>
         </div>
       <Footer /></div>
     );
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-airbnb-foggy">Yükleniyor...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-airbnb-foggy">Yukleniyor...</div>;
 
   return (
-    <div className="min-h-screen flex flex-col bg-sahi-bg">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      <div className="max-w-[960px] mx-auto px-4 py-8 w-full flex-1">
-        <h1 className="text-[22px] font-bold text-airbnb-hof mb-1">Hesabım</h1>
-        <p className="text-[14px] text-airbnb-foggy mb-6">Hoş geldin, {user?.name}</p>
+      <div className="max-w-[1080px] mx-auto px-4 md:px-6 py-10 w-full flex-1">
+        <h1 className="text-[32px] font-semibold text-airbnb-hof">Hesabim</h1>
+        <p className="text-[18px] text-airbnb-foggy mt-1 mb-8">{user?.name} · {user?.email}</p>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-[#e0e0e0] mb-6">
+        <div className="flex gap-6 border-b border-[#ebebeb] mb-8">
           {[
-            { key: "rentals" as const, label: "Kiralarım", count: myRentals.length },
-            { key: "listings" as const, label: "İlanlarım", count: myListings.length },
+            { key: "rentals" as const, label: "Kiralarim" },
+            { key: "listings" as const, label: "Ilanlarim" },
             { key: "profile" as const, label: "Profil" },
           ].map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all ${tab === t.key ? "border-airbnb-rausch text-airbnb-rausch" : "border-transparent text-airbnb-foggy hover:text-airbnb-hof"}`}>
-              {t.label} {t.count !== undefined && <span className="ml-1 text-[12px] bg-[#f0f0f0] px-1.5 py-0.5 rounded-full">{t.count}</span>}
+            <button key={t.key} onClick={() => setTab(t.key)} className={`pb-4 text-[16px] font-medium border-b-2 transition-all ${tab === t.key ? "border-airbnb-hof text-airbnb-hof" : "border-transparent text-airbnb-foggy hover:text-airbnb-hof"}`}>
+              {t.label}
             </button>
           ))}
         </div>
 
-        {/* Rentals tab */}
+        {/* Rentals */}
         {tab === "rentals" && (
-          <div>
+          <div className="animate-fadeIn">
             {myRentals.length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#ddd] p-8 text-center">
-                <p className="text-[14px] text-airbnb-foggy mb-3">Henüz bir kiralama yapmadınız.</p>
-                <Link href="/" className="text-airbnb-rausch font-semibold underline">İlanları keşfet</Link>
+              <div className="text-center py-16">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1" className="mx-auto mb-4"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>
+                <p className="text-[18px] font-semibold text-airbnb-hof mb-1">Henuz kiralama yapmadiniz</p>
+                <p className="text-[14px] text-airbnb-foggy mb-6">Ilanlari kesfedip ilk kiralamanizi yapin</p>
+                <Link href="/" className="bg-airbnb-rausch text-white px-6 py-3 rounded-xl font-semibold inline-block">Kesfet</Link>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {myRentals.map((b) => (
-                  <div key={b.id} className="bg-white rounded-xl border border-[#ddd] p-4">
+                  <div key={b.id} className="border border-[#ebebeb] rounded-xl p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <Link href={`/ilan/${b.listingId}`} className="text-[15px] font-semibold text-airbnb-hof hover:underline">{b.listingTitle}</Link>
-                        <div className="text-[13px] text-airbnb-foggy mt-1">
-                          <span className="bg-[#f0f0f0] px-2 py-0.5 rounded text-[11px] font-medium mr-2">{categoryLabels[b.category]}</span>
-                          {b.startDate} → {b.endDate} · {b.totalDays} gün
+                        <Link href={`/ilan/${b.listingId}`} className="text-[16px] font-semibold text-airbnb-hof hover:underline">{b.listingTitle}</Link>
+                        <div className="flex items-center gap-2 mt-2 text-[14px] text-airbnb-foggy">
+                          <span className="bg-[#f7f7f7] px-3 py-1 rounded-full text-[12px] font-medium text-airbnb-hof">{categoryLabels[b.category]}</span>
+                          <span>{b.startDate} &rarr; {b.endDate}</span>
+                          <span>·</span>
+                          <span>{b.totalDays} gun</span>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-[15px] font-bold text-airbnb-hof">{formatPrice(b.totalPrice)}</div>
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${b.status === "confirmed" ? "bg-green-100 text-green-700" : b.status === "completed" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
-                          {b.status === "confirmed" ? "Onaylandı" : b.status === "completed" ? "Tamamlandı" : b.status}
+                        <div className="text-[18px] font-semibold">{formatPrice(b.totalPrice)}</div>
+                        <span className={`text-[12px] font-medium px-3 py-1 rounded-full inline-block mt-1 ${b.status === "confirmed" ? "bg-[#f0fff4] text-[#008A05]" : "bg-[#f7f7f7] text-airbnb-foggy"}`}>
+                          {b.status === "confirmed" ? "Onaylandi" : b.status === "completed" ? "Tamamlandi" : b.status}
                         </span>
                       </div>
-                    </div>
-                    <div className="mt-2 text-[12px] text-green-700 bg-green-50 rounded p-2">
-                      Ödemeniz çıkış tarihine kadar RentHub güvencesindedir.
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Earnings section for owners */}
             {myEarnings.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-[16px] font-semibold text-airbnb-hof mb-3">Kazançlarım (Kiraya Veren Olarak)</h2>
-                <div className="bg-white rounded-xl border border-[#ddd] p-4">
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-[20px] font-bold text-airbnb-hof">{myEarnings.length}</div>
-                      <div className="text-[12px] text-airbnb-foggy">Toplam Kiralama</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[20px] font-bold text-green-600">{formatPrice(myEarnings.reduce((s, b) => s + b.netPayout, 0))}</div>
-                      <div className="text-[12px] text-airbnb-foggy">Net Kazanç</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[20px] font-bold text-airbnb-rausch">{formatPrice(myEarnings.reduce((s, b) => s + b.commission, 0))}</div>
-                      <div className="text-[12px] text-airbnb-foggy">Komisyon (%3)</div>
-                    </div>
+              <div className="mt-12">
+                <h2 className="text-[22px] font-semibold text-airbnb-hof mb-6">Kazanclarim</h2>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="border border-[#ebebeb] rounded-xl p-5 text-center">
+                    <div className="text-[28px] font-semibold text-airbnb-hof">{myEarnings.length}</div>
+                    <div className="text-[14px] text-airbnb-foggy mt-1">Kiralama</div>
                   </div>
-                  {myEarnings.map((b) => (
-                    <div key={b.id} className="flex justify-between items-center py-2 border-t border-[#f0f0f0] text-[13px]">
-                      <span className="text-airbnb-hof">{b.listingTitle}</span>
-                      <span className="text-airbnb-foggy">{b.startDate} → {b.endDate}</span>
-                      <span className="font-semibold text-green-600">{formatPrice(b.netPayout)}</span>
-                    </div>
-                  ))}
+                  <div className="border border-[#ebebeb] rounded-xl p-5 text-center">
+                    <div className="text-[28px] font-semibold text-[#008A05]">{formatPrice(myEarnings.reduce((s, b) => s + b.netPayout, 0))}</div>
+                    <div className="text-[14px] text-airbnb-foggy mt-1">Net Kazanc</div>
+                  </div>
+                  <div className="border border-[#ebebeb] rounded-xl p-5 text-center">
+                    <div className="text-[28px] font-semibold text-airbnb-foggy">{formatPrice(myEarnings.reduce((s, b) => s + b.commission, 0))}</div>
+                    <div className="text-[14px] text-airbnb-foggy mt-1">Komisyon</div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Listings tab */}
+        {/* Listings */}
         {tab === "listings" && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[14px] text-airbnb-foggy">{myListings.length} ilan</span>
-              <Link href="/ilan-ver" className="bg-airbnb-rausch text-white px-4 py-2 rounded-lg text-[13px] font-semibold">+ Yeni İlan</Link>
+          <div className="animate-fadeIn">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-[16px] text-airbnb-foggy">{myListings.length} ilan</span>
+              <Link href="/ilan-ver" className="bg-airbnb-rausch text-white px-5 py-3 rounded-xl text-[14px] font-semibold hover:bg-airbnb-rausch-dark transition-colors">Yeni Ilan</Link>
             </div>
             {myListings.length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#ddd] p-8 text-center">
-                <p className="text-[14px] text-airbnb-foggy mb-3">Henüz ilan oluşturmadınız.</p>
-                <Link href="/ilan-ver" className="text-airbnb-rausch font-semibold underline">İlk ilanınızı oluşturun</Link>
+              <div className="text-center py-16">
+                <p className="text-[18px] font-semibold text-airbnb-hof mb-1">Henuz ilan olusturmadiniz</p>
+                <p className="text-[14px] text-airbnb-foggy mb-6">Ilk ilaninizi olusturun ve kiraya verin</p>
+                <Link href="/ilan-ver" className="bg-airbnb-hof text-white px-6 py-3 rounded-xl font-semibold inline-block">Ilan Olustur</Link>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {myListings.map((l) => (
                   <Link key={l.id} href={`/ilan/${l.id}`}>
-                    <div className="bg-white rounded-xl border border-[#ddd] p-4 flex gap-4 hover:shadow-md transition-shadow">
-                      <img src={l.images[0]} alt="" className="w-24 h-20 object-cover rounded-lg shrink-0" />
+                    <div className="border border-[#ebebeb] rounded-xl p-4 flex gap-5 hover:shadow-md transition-shadow">
+                      <img src={l.images[0]} alt="" className="w-28 h-24 object-cover rounded-xl shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[14px] font-semibold text-airbnb-hof line-clamp-1">{l.title}</h3>
-                        <div className="text-[12px] text-airbnb-foggy mt-0.5">
-                          <span className="bg-[#f0f0f0] px-2 py-0.5 rounded text-[11px] font-medium mr-2">{categoryLabels[l.category]}</span>
-                          {l.location.city}, {l.location.district}
+                        <h3 className="text-[16px] font-semibold text-airbnb-hof line-clamp-1">{l.title}</h3>
+                        <div className="flex items-center gap-2 mt-1 text-[14px] text-airbnb-foggy">
+                          <span className="bg-[#f7f7f7] px-3 py-1 rounded-full text-[12px] font-medium text-airbnb-hof">{categoryLabels[l.category]}</span>
+                          <span>{l.location.city}</span>
                         </div>
-                        <div className="text-[14px] font-bold text-airbnb-hof mt-1">{formatPrice(l.pricePerDay)} / gün</div>
+                        <div className="text-[16px] font-semibold text-airbnb-hof mt-2">{formatPrice(l.pricePerDay)} <span className="font-normal text-airbnb-foggy text-[14px]">/ gun</span></div>
                       </div>
                     </div>
                   </Link>
@@ -159,26 +151,26 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Profile tab */}
+        {/* Profile */}
         {tab === "profile" && (
-          <div className="bg-white rounded-xl border border-[#ddd] p-5">
-            <div className="space-y-4">
+          <div className="animate-fadeIn max-w-lg">
+            <div className="space-y-6">
               <div>
-                <label className="block text-[13px] font-medium text-airbnb-hof mb-1">Ad Soyad</label>
-                <input type="text" value={user?.name || ""} readOnly className="w-full border border-[#ddd] rounded-lg px-4 py-2.5 text-[14px] bg-[#f7f7f7]" />
+                <label className="block text-[14px] font-semibold text-airbnb-hof mb-2">Ad Soyad</label>
+                <input type="text" value={user?.name || ""} readOnly className="w-full border border-[#b0b0b0] rounded-xl px-4 py-3 text-[16px] bg-[#f7f7f7] text-airbnb-foggy" />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-airbnb-hof mb-1">E-posta</label>
-                <input type="email" value={user?.email || ""} readOnly className="w-full border border-[#ddd] rounded-lg px-4 py-2.5 text-[14px] bg-[#f7f7f7]" />
+                <label className="block text-[14px] font-semibold text-airbnb-hof mb-2">E-posta</label>
+                <input type="email" value={user?.email || ""} readOnly className="w-full border border-[#b0b0b0] rounded-xl px-4 py-3 text-[16px] bg-[#f7f7f7] text-airbnb-foggy" />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-airbnb-hof mb-1">Telefon</label>
-                <input type="tel" value={user?.phone || ""} readOnly className="w-full border border-[#ddd] rounded-lg px-4 py-2.5 text-[14px] bg-[#f7f7f7]" />
+                <label className="block text-[14px] font-semibold text-airbnb-hof mb-2">Telefon</label>
+                <input type="tel" value={user?.phone || ""} readOnly className="w-full border border-[#b0b0b0] rounded-xl px-4 py-3 text-[16px] bg-[#f7f7f7] text-airbnb-foggy" />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-airbnb-hof mb-1">Banka IBAN (Kazanç Ödemeleri İçin)</label>
-                <input type="text" value={bankIban} onChange={(e) => setBankIban(e.target.value)} placeholder="TR00 0000 0000 0000 0000 0000 00" className="w-full border border-[#ddd] rounded-lg px-4 py-2.5 text-[14px]" />
-                <p className="text-[11px] text-airbnb-foggy mt-1">Çıkış tarihinde %3 komisyon düşüldükten sonra kalan tutar bu IBAN&apos;a aktarılır.</p>
+                <label className="block text-[14px] font-semibold text-airbnb-hof mb-2">Banka IBAN</label>
+                <input type="text" value={bankIban} onChange={(e) => setBankIban(e.target.value)} placeholder="TR00 0000 0000 0000 0000 0000 00" className="w-full border border-[#b0b0b0] rounded-xl px-4 py-3 text-[16px]" />
+                <p className="text-[13px] text-airbnb-foggy mt-2">Kiralama kazanclariniz %3 komisyon dusuldukten sonra bu IBAN&apos;a aktarilir.</p>
               </div>
             </div>
           </div>
