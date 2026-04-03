@@ -1,382 +1,292 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { cities, propertyTypes, roomOptions } from "../data/properties";
+import { useAuth } from "../context/AuthContext";
+import { Category, categoryLabels, cities, addListing, COMMISSION_RATE } from "../data/properties";
 
-type ListingType = "sale" | "rent" | "daily";
-type Step = 1 | 2 | 3 | 4;
+export default function CreateListingPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [category, setCategory] = useState<Category>("house");
+  const [step, setStep] = useState(1);
+  const [price, setPrice] = useState("");
 
-export default function IlanVerPage() {
-  const [step, setStep] = useState<Step>(1);
-  const [listingType, setListingType] = useState<ListingType>("sale");
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    propertyType: "",
-    city: "",
-    district: "",
-    neighborhood: "",
-    rooms: "",
-    bathrooms: "1",
-    area: "",
-    floor: "",
-    totalFloors: "",
-    buildingAge: "",
-    price: "",
-    heating: "",
-    furnished: false,
-    balcony: false,
-    parking: false,
-    elevator: false,
-    pool: false,
-    garden: false,
-    security: false,
-    airConditioning: false,
-    wifi: false,
-    kitchen: false,
-    washer: false,
-    tv: false,
-    minStay: "1",
-    maxStay: "30",
-    checkIn: "14:00",
-    checkOut: "11:00",
-    name: "",
-    phone: "",
-    email: "",
-  });
+  // Common fields
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
 
-  const updateField = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  // House fields
+  const [houseForm, setHouseForm] = useState({ propertyType: "apartment", accommodationType: "entire", area: "", bedrooms: "1", beds: "1", livingRooms: "1", bathrooms: "1", kitchens: "1", maxGuests: "2", floor: "", totalFloors: "", buildingAge: "", checkIn: "14:00", checkOut: "11:00", pool: false, garden: false, parking: false, balcony: false, terrace: false, airConditioning: false, heating: false, wifi: false, tv: false, washer: false, dryer: false, dishwasher: false, iron: false, elevator: false, security: false, generator: false, seaView: false, mountainView: false, cityView: false, petsAllowed: false, smokingAllowed: false, partiesAllowed: false });
+
+  // Car fields
+  const [carForm, setCarForm] = useState({ brand: "", model: "", year: "2024", fuelType: "gasoline", transmission: "automatic", engineSize: "", seats: "5", doors: "4", color: "", mileage: "", trunkSize: "medium", hasAC: true, hasGPS: false, hasBluetooth: true, hasBackupCamera: false, hasCruiseControl: false, hasUSB: true, hasChildSeat: false, insuranceIncluded: true, dailyKmLimit: "300", minDriverAge: "21", minLicenseYears: "2" });
+
+  // Motorcycle fields
+  const [motoForm, setMotoForm] = useState({ brand: "", model: "", year: "2024", engineCC: "", type: "naked", color: "", mileage: "", fuelCapacity: "", seatHeight: "", hasABS: true, hasTractionControl: false, hasQuickshifter: false, hasHeatedGrips: false, helmetIncluded: true, glovesIncluded: false, lockIncluded: true, minLicenseType: "A2" });
+
+  // Boat fields
+  const [boatForm, setBoatForm] = useState({ boatType: "motorboat", brand: "", model: "", year: "2024", length: "", maxPassengers: "", cabins: "0", beds: "0", bathrooms: "0", enginePower: "", fuelType: "diesel", captainIncluded: false, crewIncluded: false, hasGPS: false, hasRadar: false, hasSonar: false, hasAC: false, hasKitchen: false, hasBBQ: false, fishingEquipment: false });
+
+  const priceNum = Number(price) || 0;
+  const commission = Math.round(priceNum * COMMISSION_RATE);
+  const netPayout = priceNum - commission;
+
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen flex flex-col"><Header />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center">
+            <h1 className="text-[20px] font-bold text-airbnb-hof mb-2">İlan vermek için giriş yapmalısınız</h1>
+            <p className="text-[14px] text-airbnb-foggy mb-4">Üye olun veya giriş yapın, ardından ilanınızı oluşturun.</p>
+            <div className="flex gap-3 justify-center">
+              <Link href="/giris" className="bg-airbnb-rausch text-white px-6 py-2.5 rounded-lg font-semibold">Giriş Yap</Link>
+              <Link href="/kayit" className="border border-[#ddd] px-6 py-2.5 rounded-lg font-semibold text-airbnb-hof">Kayıt Ol</Link>
+            </div>
+          </div>
+        </div>
+      <Footer /></div>
+    );
+  }
+
+  const handleSubmit = () => {
+    const listing: any = {
+      id: "listing_" + Date.now(),
+      userId: user!.id,
+      category,
+      title, description,
+      pricePerDay: priceNum,
+      currency: "TL",
+      location: { city, district },
+      images: ["https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800"],
+      createdAt: new Date().toISOString().split("T")[0],
+      isFavorite: false, views: 0, bookedDates: [],
+      ownerName: user!.name, ownerAvatar: user!.name.split(" ").map((n: string) => n[0]).join(""),
+    };
+
+    if (category === "house") listing.houseDetails = { ...houseForm, area: Number(houseForm.area), bedrooms: Number(houseForm.bedrooms), beds: Number(houseForm.beds), livingRooms: Number(houseForm.livingRooms), bathrooms: Number(houseForm.bathrooms), kitchens: Number(houseForm.kitchens), maxGuests: Number(houseForm.maxGuests), floor: Number(houseForm.floor) || undefined, totalFloors: Number(houseForm.totalFloors) || undefined, buildingAge: Number(houseForm.buildingAge) || undefined };
+    if (category === "car") listing.carDetails = { ...carForm, year: Number(carForm.year), seats: Number(carForm.seats), doors: Number(carForm.doors), mileage: Number(carForm.mileage), dailyKmLimit: Number(carForm.dailyKmLimit), minDriverAge: Number(carForm.minDriverAge), minLicenseYears: Number(carForm.minLicenseYears) };
+    if (category === "motorcycle") listing.motorcycleDetails = { ...motoForm, year: Number(motoForm.year), engineCC: Number(motoForm.engineCC), mileage: Number(motoForm.mileage), fuelCapacity: Number(motoForm.fuelCapacity), seatHeight: Number(motoForm.seatHeight) };
+    if (category === "boat") listing.boatDetails = { ...boatForm, year: Number(boatForm.year), length: Number(boatForm.length), maxPassengers: Number(boatForm.maxPassengers), cabins: Number(boatForm.cabins), beds: Number(boatForm.beds), bathrooms: Number(boatForm.bathrooms), enginePower: Number(boatForm.enginePower), waterToys: [] };
+
+    addListing(listing);
+    router.push("/hesabim");
   };
 
-  const steps = [
-    { num: 1, label: "İlan Tipi" },
-    { num: 2, label: "Detaylar" },
-    { num: 3, label: "Özellikler" },
-    { num: 4, label: "Fotoğraflar & İletişim" },
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-sahi-bg">
       <Header />
+      <div className="max-w-[640px] mx-auto px-4 py-8 w-full flex-1">
+        <h1 className="text-[22px] font-bold text-airbnb-hof mb-1">İlan Oluştur</h1>
+        <p className="text-[14px] text-airbnb-foggy mb-6">Kiralık ilanınızı oluşturun. Tüm kiralamalarda %3 komisyon uygulanır.</p>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 w-full flex-1">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Ücretsiz İlan Ver</h1>
-        <p className="text-gray-500 mb-8">Evinizi binlerce potansiyel alıcı ve kiracıya ulaştırın.</p>
-
-        {/* Steps indicator */}
-        <div className="flex items-center gap-2 mb-8">
-          {steps.map((s, i) => (
-            <div key={s.num} className="flex items-center flex-1">
-              <div className={`flex items-center gap-2 ${step >= s.num ? "text-primary" : "text-gray-400"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 shrink-0 ${
-                  step > s.num ? "bg-primary border-primary text-white" :
-                  step === s.num ? "border-primary text-primary" :
-                  "border-gray-300 text-gray-400"
-                }`}>
-                  {step > s.num ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                  ) : s.num}
-                </div>
-                <span className="text-sm font-medium hidden sm:inline">{s.label}</span>
-              </div>
-              {i < steps.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-3 ${step > s.num ? "bg-primary" : "bg-gray-200"}`} />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Step 1: Listing Type */}
+        {/* Step 1: Category + basic info */}
         {step === 1 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 animate-fade-in-up">
-            <h2 className="text-lg font-semibold mb-4">İlan tipini seçin</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { key: "sale" as const, title: "Satılık", desc: "Mülkünüzü satışa çıkarın", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-                { key: "rent" as const, title: "Kiralık", desc: "Aylık kiralama ilanı verin", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
-                { key: "daily" as const, title: "Günlük Kiralık", desc: "Kısa süreli kiralama ilanı", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-              ].map((type) => (
-                <button
-                  key={type.key}
-                  onClick={() => setListingType(type.key)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all ${
-                    listingType === type.key
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={listingType === type.key ? "var(--primary)" : "#666"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-3">
-                    <path d={type.icon} />
-                  </svg>
-                  <h3 className="font-semibold text-gray-900">{type.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{type.desc}</p>
+          <div className="bg-white rounded-xl border border-[#ddd] p-5 animate-fadeIn">
+            <h2 className="text-[16px] font-semibold text-airbnb-hof mb-3">Kategori & Temel Bilgiler</h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+              {(["house", "car", "motorcycle", "boat"] as Category[]).map((cat) => (
+                <button key={cat} onClick={() => setCategory(cat)} className={`p-3 rounded-xl border-2 text-center transition-all ${category === cat ? "border-airbnb-rausch bg-[#FFF0F3]" : "border-[#ddd] hover:border-[#999]"}`}>
+                  <span className="text-[13px] font-semibold">{categoryLabels[cat]}</span>
                 </button>
               ))}
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-3">Emlak Tipi</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {propertyTypes.map((t) => (
-                  <button
-                    key={t.value}
-                    onClick={() => updateField("propertyType", t.value)}
-                    className={`p-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                      formData.propertyType === t.value
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-gray-200 text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+            <div className="space-y-3">
+              <Input label="İlan Başlığı *" value={title} onChange={setTitle} placeholder="Kısa ve açıklayıcı bir başlık" />
+              <div>
+                <label className="block text-[13px] font-medium text-airbnb-hof mb-1">Açıklama *</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detaylı açıklama yazın..." className="w-full border border-[#ddd] rounded-lg px-4 py-2.5 text-[14px] resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[13px] font-medium text-airbnb-hof mb-1">Şehir *</label>
+                  <select value={city} onChange={(e) => setCity(e.target.value)} className="w-full border border-[#ddd] rounded-lg px-4 py-2.5 text-[14px]">
+                    <option value="">Seçin</option>
+                    {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <Input label="İlçe *" value={district} onChange={setDistrict} placeholder="İlçe" />
+              </div>
+
+              {/* Price with commission calc */}
+              <div>
+                <Input label="Günlük Kiralama Fiyatı (TL) *" value={price} onChange={setPrice} placeholder="0" type="number" />
+                {priceNum > 0 && (
+                  <div className="mt-2 bg-[#f7f7f7] rounded-lg p-3 text-[13px]">
+                    <div className="flex justify-between mb-1"><span className="text-airbnb-foggy">Listelenen Fiyat</span><span className="font-semibold">{priceNum.toLocaleString("tr-TR")} TL / gün</span></div>
+                    <div className="flex justify-between mb-1"><span className="text-airbnb-foggy">RentHub Komisyonu (%3)</span><span className="text-airbnb-rausch">-{commission.toLocaleString("tr-TR")} TL</span></div>
+                    <hr className="my-1.5 border-[#e0e0e0]" />
+                    <div className="flex justify-between"><span className="font-semibold text-airbnb-hof">Net Kazancınız</span><span className="font-bold text-green-600">{netPayout.toLocaleString("tr-TR")} TL / gün</span></div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <button
-              onClick={() => setStep(2)}
-              disabled={!formData.propertyType}
-              className="mt-6 w-full btn-primary !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button onClick={() => setStep(2)} disabled={!title || !city || !price} className="w-full mt-5 bg-airbnb-rausch text-white py-3 rounded-lg font-semibold disabled:opacity-50">
               Devam Et
             </button>
           </div>
         )}
 
-        {/* Step 2: Details */}
+        {/* Step 2: Category-specific details */}
         {step === 2 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 animate-fade-in-up">
-            <h2 className="text-lg font-semibold mb-4">İlan Detayları</h2>
+          <div className="bg-white rounded-xl border border-[#ddd] p-5 animate-fadeIn">
+            <h2 className="text-[16px] font-semibold text-airbnb-hof mb-3">{categoryLabels[category]} Detayları</h2>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">İlan Başlığı *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => updateField("title", e.target.value)}
-                  placeholder="Örn: Kadıköy Moda'da Deniz Manzaralı 3+1 Daire"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama *</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => updateField("description", e.target.value)}
-                  rows={4}
-                  placeholder="Mülkünüzü detaylı olarak tanımlayın..."
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Şehir *</label>
-                  <select value={formData.city} onChange={(e) => updateField("city", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm cursor-pointer">
-                    <option value="">Seçiniz</option>
-                    {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+            {category === "house" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Select label="Tip" value={houseForm.propertyType} onChange={(v) => setHouseForm({ ...houseForm, propertyType: v })} options={[["apartment","Daire"],["villa","Villa"],["studio","Stüdyo"],["detached","Müstakil"]]} />
+                  <Select label="Konaklama" value={houseForm.accommodationType} onChange={(v) => setHouseForm({ ...houseForm, accommodationType: v })} options={[["entire","Tüm Ev"],["private_room","Özel Oda"],["shared_room","Ortak Oda"]]} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">İlçe *</label>
-                  <input type="text" value={formData.district} onChange={(e) => updateField("district", e.target.value)} placeholder="İlçe" className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Alan (m²)" value={houseForm.area} onChange={(v) => setHouseForm({ ...houseForm, area: v })} type="number" />
+                  <Input label="Yatak Odası" value={houseForm.bedrooms} onChange={(v) => setHouseForm({ ...houseForm, bedrooms: v })} type="number" />
+                  <Input label="Yatak" value={houseForm.beds} onChange={(v) => setHouseForm({ ...houseForm, beds: v })} type="number" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mahalle</label>
-                  <input type="text" value={formData.neighborhood} onChange={(e) => updateField("neighborhood", e.target.value)} placeholder="Mahalle" className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
+                <div className="grid grid-cols-4 gap-3">
+                  <Input label="Salon" value={houseForm.livingRooms} onChange={(v) => setHouseForm({ ...houseForm, livingRooms: v })} type="number" />
+                  <Input label="Banyo" value={houseForm.bathrooms} onChange={(v) => setHouseForm({ ...houseForm, bathrooms: v })} type="number" />
+                  <Input label="Mutfak" value={houseForm.kitchens} onChange={(v) => setHouseForm({ ...houseForm, kitchens: v })} type="number" />
+                  <Input label="Maks Misafir" value={houseForm.maxGuests} onChange={(v) => setHouseForm({ ...houseForm, maxGuests: v })} type="number" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="Giriş Saati" value={houseForm.checkIn} onChange={(v) => setHouseForm({ ...houseForm, checkIn: v })} type="time" />
+                  <Input label="Çıkış Saati" value={houseForm.checkOut} onChange={(v) => setHouseForm({ ...houseForm, checkOut: v })} type="time" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-airbnb-hof pt-2">Özellikler</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["pool:Havuz","garden:Bahçe","parking:Otopark","balcony:Balkon","terrace:Teras","airConditioning:Klima","heating:Isıtma","wifi:Wi-Fi","tv:TV","washer:Çamaşır Mak.","dryer:Kurutma","dishwasher:Bulaşık Mak.","iron:Ütü","elevator:Asansör","security:Güvenlik","generator:Jeneratör","seaView:Deniz Manz.","mountainView:Dağ Manz.","cityView:Şehir Manz.","petsAllowed:Evcil Hayvan","smokingAllowed:Sigara"] as const).map((item) => {
+                    const [key, label] = item.split(":");
+                    return <Toggle key={key} label={label} checked={(houseForm as any)[key]} onChange={(v) => setHouseForm({ ...houseForm, [key]: v })} />;
+                  })}
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Oda Sayısı *</label>
-                  <select value={formData.rooms} onChange={(e) => updateField("rooms", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm cursor-pointer">
-                    <option value="">Seçiniz</option>
-                    {roomOptions.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
+            {category === "car" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="Marka *" value={carForm.brand} onChange={(v) => setCarForm({ ...carForm, brand: v })} placeholder="BMW, Mercedes..." />
+                  <Input label="Model *" value={carForm.model} onChange={(v) => setCarForm({ ...carForm, model: v })} placeholder="320i, C200..." />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Banyo</label>
-                  <select value={formData.bathrooms} onChange={(e) => updateField("bathrooms", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm cursor-pointer">
-                    {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Yıl" value={carForm.year} onChange={(v) => setCarForm({ ...carForm, year: v })} type="number" />
+                  <Select label="Yakıt" value={carForm.fuelType} onChange={(v) => setCarForm({ ...carForm, fuelType: v })} options={[["gasoline","Benzin"],["diesel","Dizel"],["electric","Elektrik"],["hybrid","Hibrit"],["lpg","LPG"]]} />
+                  <Select label="Vites" value={carForm.transmission} onChange={(v) => setCarForm({ ...carForm, transmission: v })} options={[["automatic","Otomatik"],["manual","Manuel"]]} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">m² *</label>
-                  <input type="number" value={formData.area} onChange={(e) => updateField("area", e.target.value)} placeholder="120" className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Motor" value={carForm.engineSize} onChange={(v) => setCarForm({ ...carForm, engineSize: v })} placeholder="2.0L" />
+                  <Input label="Koltuk" value={carForm.seats} onChange={(v) => setCarForm({ ...carForm, seats: v })} type="number" />
+                  <Input label="Renk" value={carForm.color} onChange={(v) => setCarForm({ ...carForm, color: v })} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fiyat (TL) *</label>
-                  <input type="number" value={formData.price} onChange={(e) => updateField("price", e.target.value)} placeholder={listingType === "daily" ? "Gecelik fiyat" : "Satış fiyatı"} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="KM" value={carForm.mileage} onChange={(v) => setCarForm({ ...carForm, mileage: v })} type="number" />
+                  <Input label="Günlük KM Limit" value={carForm.dailyKmLimit} onChange={(v) => setCarForm({ ...carForm, dailyKmLimit: v })} type="number" />
+                  <Input label="Min. Ehliyet (yıl)" value={carForm.minLicenseYears} onChange={(v) => setCarForm({ ...carForm, minLicenseYears: v })} type="number" />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bulunduğu Kat</label>
-                  <input type="number" value={formData.floor} onChange={(e) => updateField("floor", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Toplam Kat</label>
-                  <input type="number" value={formData.totalFloors} onChange={(e) => updateField("totalFloors", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bina Yaşı</label>
-                  <input type="number" value={formData.buildingAge} onChange={(e) => updateField("buildingAge", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Isıtma</label>
-                  <select value={formData.heating} onChange={(e) => updateField("heating", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm cursor-pointer">
-                    <option value="">Seçiniz</option>
-                    <option value="Doğalgaz">Doğalgaz</option>
-                    <option value="Merkezi">Merkezi</option>
-                    <option value="Klima">Klima</option>
-                    <option value="Soba">Soba</option>
-                    <option value="Şömine">Şömine</option>
-                  </select>
+                <h3 className="text-[14px] font-semibold text-airbnb-hof pt-2">Özellikler</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[["hasAC","Klima"],["hasGPS","GPS"],["hasBluetooth","Bluetooth"],["hasBackupCamera","Geri Kamera"],["hasCruiseControl","Hız Sabitleyici"],["hasUSB","USB"],["hasChildSeat","Çocuk Koltuğu"],["insuranceIncluded","Sigorta Dahil"]].map(([key, label]) => (
+                    <Toggle key={key} label={label} checked={(carForm as any)[key]} onChange={(v) => setCarForm({ ...carForm, [key]: v })} />
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Daily rental specific fields */}
-              {listingType === "daily" && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Konaklama Bilgileri</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Min. Konaklama (gece)</label>
-                      <input type="number" value={formData.minStay} onChange={(e) => updateField("minStay", e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Max. Konaklama (gece)</label>
-                      <input type="number" value={formData.maxStay} onChange={(e) => updateField("maxStay", e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Giriş Saati</label>
-                      <input type="time" value={formData.checkIn} onChange={(e) => updateField("checkIn", e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Çıkış Saati</label>
-                      <input type="time" value={formData.checkOut} onChange={(e) => updateField("checkOut", e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                  </div>
+            {category === "motorcycle" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="Marka *" value={motoForm.brand} onChange={(v) => setMotoForm({ ...motoForm, brand: v })} placeholder="Honda, Yamaha..." />
+                  <Input label="Model *" value={motoForm.model} onChange={(v) => setMotoForm({ ...motoForm, model: v })} placeholder="CB650R, MT-07..." />
                 </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setStep(1)} className="btn-outline flex-1 !rounded-xl">Geri</button>
-              <button
-                onClick={() => setStep(3)}
-                disabled={!formData.title || !formData.city || !formData.price}
-                className="btn-primary flex-1 !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Devam Et
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Features */}
-        {step === 3 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 animate-fade-in-up">
-            <h2 className="text-lg font-semibold mb-4">Özellikler</h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {[
-                { key: "furnished", label: "Eşyalı" },
-                { key: "balcony", label: "Balkon" },
-                { key: "parking", label: "Otopark" },
-                { key: "elevator", label: "Asansör" },
-                { key: "pool", label: "Yüzme Havuzu" },
-                { key: "garden", label: "Bahçe" },
-                { key: "security", label: "Güvenlik / Kapıcı" },
-                { key: "airConditioning", label: "Klima" },
-                ...(listingType === "daily" ? [
-                  { key: "wifi", label: "Wi-Fi" },
-                  { key: "kitchen", label: "Mutfak" },
-                  { key: "washer", label: "Çamaşır Makinesi" },
-                  { key: "tv", label: "TV" },
-                ] : []),
-              ].map((feature) => (
-                <button
-                  key={feature.key}
-                  onClick={() => updateField(feature.key, !(formData as Record<string, unknown>)[feature.key])}
-                  className={`p-4 rounded-xl border-2 text-left text-sm font-medium transition-all ${
-                    (formData as Record<string, unknown>)[feature.key]
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-gray-200 text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    {feature.label}
-                    {Boolean((formData as Record<string, unknown>)[feature.key]) ? (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                    ) : null}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setStep(2)} className="btn-outline flex-1 !rounded-xl">Geri</button>
-              <button onClick={() => setStep(4)} className="btn-primary flex-1 !rounded-xl">Devam Et</button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Photos & Contact */}
-        {step === 4 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 animate-fade-in-up">
-            <h2 className="text-lg font-semibold mb-4">Fotoğraflar</h2>
-
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer mb-6">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <p className="text-gray-700 font-medium">Fotoğraf yüklemek için tıklayın</p>
-              <p className="text-sm text-gray-500 mt-1">veya sürükleyip bırakın (max. 20 fotoğraf)</p>
-              <p className="text-xs text-gray-400 mt-2">JPG, PNG - Max 10MB</p>
-            </div>
-
-            <h2 className="text-lg font-semibold mb-4">İletişim Bilgileri</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad *</label>
-                  <input type="text" value={formData.name} onChange={(e) => updateField("name", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Yıl" value={motoForm.year} onChange={(v) => setMotoForm({ ...motoForm, year: v })} type="number" />
+                  <Input label="Motor (cc)" value={motoForm.engineCC} onChange={(v) => setMotoForm({ ...motoForm, engineCC: v })} type="number" />
+                  <Select label="Tip" value={motoForm.type} onChange={(v) => setMotoForm({ ...motoForm, type: v })} options={[["sport","Sport"],["touring","Touring"],["cruiser","Cruiser"],["naked","Naked"],["scooter","Scooter"],["enduro","Enduro"],["adventure","Adventure"]]} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
-                  <input type="tel" value={formData.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder="05XX XXX XX XX" className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Renk" value={motoForm.color} onChange={(v) => setMotoForm({ ...motoForm, color: v })} />
+                  <Input label="KM" value={motoForm.mileage} onChange={(v) => setMotoForm({ ...motoForm, mileage: v })} type="number" />
+                  <Select label="Ehliyet" value={motoForm.minLicenseType} onChange={(v) => setMotoForm({ ...motoForm, minLicenseType: v })} options={[["A1","A1"],["A2","A2"],["A","A"]]} />
+                </div>
+                <h3 className="text-[14px] font-semibold text-airbnb-hof pt-2">Özellikler</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[["hasABS","ABS"],["hasTractionControl","Traction Control"],["hasQuickshifter","Quickshifter"],["hasHeatedGrips","Isıtmalı Elcik"],["helmetIncluded","Kask Dahil"],["glovesIncluded","Eldiven Dahil"],["lockIncluded","Kilit Dahil"]].map(([key, label]) => (
+                    <Toggle key={key} label={label} checked={(motoForm as any)[key]} onChange={(v) => setMotoForm({ ...motoForm, [key]: v })} />
+                  ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
-                <input type="email" value={formData.email} onChange={(e) => updateField("email", e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" />
-              </div>
-            </div>
+            )}
 
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setStep(3)} className="btn-outline flex-1 !rounded-xl">Geri</button>
-              <button
-                disabled={!formData.name || !formData.phone}
-                className="flex-1 bg-gradient-to-r from-primary to-primary-dark text-white py-3 rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                İlanı Yayınla
-              </button>
+            {category === "boat" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Select label="Tekne Tipi" value={boatForm.boatType} onChange={(v) => setBoatForm({ ...boatForm, boatType: v })} options={[["sailboat","Yelkenli"],["motorboat","Motorlu"],["yacht","Yat"],["catamaran","Katamaran"],["gulet","Gulet"],["speedboat","Sürat Teknesi"],["jetski","Jet Ski"]]} />
+                  <Input label="Marka" value={boatForm.brand} onChange={(v) => setBoatForm({ ...boatForm, brand: v })} />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Model" value={boatForm.model} onChange={(v) => setBoatForm({ ...boatForm, model: v })} />
+                  <Input label="Yıl" value={boatForm.year} onChange={(v) => setBoatForm({ ...boatForm, year: v })} type="number" />
+                  <Input label="Uzunluk (ft)" value={boatForm.length} onChange={(v) => setBoatForm({ ...boatForm, length: v })} type="number" />
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <Input label="Kapasite" value={boatForm.maxPassengers} onChange={(v) => setBoatForm({ ...boatForm, maxPassengers: v })} type="number" />
+                  <Input label="Kabin" value={boatForm.cabins} onChange={(v) => setBoatForm({ ...boatForm, cabins: v })} type="number" />
+                  <Input label="Yatak" value={boatForm.beds} onChange={(v) => setBoatForm({ ...boatForm, beds: v })} type="number" />
+                  <Input label="Motor (HP)" value={boatForm.enginePower} onChange={(v) => setBoatForm({ ...boatForm, enginePower: v })} type="number" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-airbnb-hof pt-2">Özellikler</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[["captainIncluded","Kaptan Dahil"],["crewIncluded","Mürettebat"],["hasGPS","GPS"],["hasRadar","Radar"],["hasSonar","Sonar"],["hasAC","Klima"],["hasKitchen","Mutfak"],["hasBBQ","BBQ"],["fishingEquipment","Balıkçılık Ekip."]].map(([key, label]) => (
+                    <Toggle key={key} label={label} checked={(boatForm as any)[key]} onChange={(v) => setBoatForm({ ...boatForm, [key]: v })} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setStep(1)} className="flex-1 border border-[#ddd] py-3 rounded-lg font-semibold text-airbnb-hof">Geri</button>
+              <button onClick={handleSubmit} className="flex-1 bg-airbnb-rausch text-white py-3 rounded-lg font-semibold hover:bg-airbnb-rausch-dark transition-colors">İlanı Yayınla</button>
             </div>
           </div>
         )}
       </div>
-
       <Footer />
     </div>
+  );
+}
+
+function Input({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <div>
+      <label className="block text-[12px] font-medium text-airbnb-hof mb-1">{label}</label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-[14px]" />
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[][] }) {
+  return (
+    <div>
+      <label className="block text-[12px] font-medium text-airbnb-hof mb-1">{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-[14px]">
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button onClick={() => onChange(!checked)} className={`p-2 rounded-lg border text-[12px] text-left transition-all ${checked ? "border-airbnb-rausch bg-[#FFF0F3] text-airbnb-rausch font-semibold" : "border-[#ddd] text-airbnb-foggy"}`}>
+      {checked ? "✓ " : ""}{label}
+    </button>
   );
 }

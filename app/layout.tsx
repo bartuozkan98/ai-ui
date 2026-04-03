@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "./context/AuthContext";
 
 export const metadata: Metadata = {
-  title: "EmlakJet - Sat, Kirala, Keşfet | Türkiye'nin Emlak Platformu",
-  description: "Türkiye'nin en kapsamlı emlak platformu. Ev satın alın, satın, günlük veya aylık kiralayın. Sahibinden ve kiralık tatil evleri tek platformda.",
-  keywords: "emlak, satılık daire, kiralık ev, günlük kiralık, tatil evi, villa kiralama, sahibinden",
+  title: "RentHub - Ev, Araba, Motor, Tekne Kiralama Platformu",
+  description: "Türkiye'nin en kapsamlı kiralama platformu. Ev, araba, motosiklet ve tekne kiralayın veya kiraya verin. Güvenli ödeme, %3 komisyon.",
+  keywords: "kiralık ev, araba kiralama, motosiklet kiralama, tekne kiralama, günlük kiralık",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="tr">
       <body className="antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
