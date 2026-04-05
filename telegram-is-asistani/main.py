@@ -85,6 +85,14 @@ def main() -> None:
         )
         logger.info(f"Gunluk otomatik ozet saat {OZET_SAATI:02d}:00 icin ayarlandi.")
 
+    # Error handler
+    async def error_handler(update, context):
+        logger.error(f"Hata: {context.error}")
+        if update and update.message:
+            await update.message.reply_text("Bir hata olustu, tekrar deneyin.")
+
+    app.add_error_handler(error_handler)
+
     logger.info("Bot baslatiliyor...")
     app.run_polling()
 

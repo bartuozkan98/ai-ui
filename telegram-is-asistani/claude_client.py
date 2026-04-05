@@ -12,7 +12,7 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
 )
-MODEL = "anthropic/claude-sonnet-4-20250514"
+MODEL = "anthropic/claude-sonnet-4"
 
 
 def _chat(prompt: str, max_tokens: int = 1024) -> str:
