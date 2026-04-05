@@ -10,6 +10,7 @@ from telegram.ext import (
 
 from config import TELEGRAM_BOT_TOKEN, OZET_SAATI
 from handlers import (
+    start_cmd,
     mesaj_kaydet,
     fikir_cmd,
     ozet_cmd,
@@ -60,6 +61,7 @@ def main() -> None:
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     # Command handlers
+    app.add_handler(CommandHandler("start", start_cmd))
     app.add_handler(CommandHandler("fikir", fikir_cmd))
     app.add_handler(CommandHandler("ozet", ozet_cmd))
     app.add_handler(CommandHandler("planla", planla_cmd))

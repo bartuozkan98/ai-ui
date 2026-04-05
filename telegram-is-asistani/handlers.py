@@ -24,6 +24,21 @@ def _admin_kontrolu(user_id: int) -> bool:
     return user_id in ADMIN_USER_IDS
 
 
+async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/start - Karsilama mesaji."""
+    await update.message.reply_text(
+        "Merhaba! Ben Is Fikri Asistaniyim.\n\n"
+        "Kullanabilecegin komutlar:\n"
+        "/fikir [metin] - Yeni fikir ekle + SWOT analizi\n"
+        "/fikirler - Tum fikirleri listele\n"
+        "/planla [F001] - Is akis plani olustur\n"
+        "/onayla [F001] - Fikri onayla\n"
+        "/reddet [F001] [gerekce] - Fikri reddet\n"
+        "/ozet - Son 24 saat konusma ozeti\n"
+        "/plan_goster - Onaylanan planlari goster"
+    )
+
+
 async def mesaj_kaydet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Passive listener: saves all group messages for /ozet."""
     if not update.message or not update.message.text:
