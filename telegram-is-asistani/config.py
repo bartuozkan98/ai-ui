@@ -1,6 +1,6 @@
 import os
 
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "BURAYA_BOT_TOKEN")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8728997832:AAEHk65hZwQ0gHIuKoFyNcOeq9yupjtRFJI")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "BURAYA_API_KEY")
 
 # /onayla ve /reddet sadece bu kullanicilarin kullanabilmesi icin
