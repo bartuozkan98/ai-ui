@@ -1,4 +1,6 @@
 import logging
+import signal
+import sys
 from datetime import time
 
 from telegram.ext import (
@@ -104,16 +106,26 @@ def main() -> None:
         )
         logger.info("Otomatik ozet: 12:00 ve 21:00 icin ayarlandi.")
 
-    # Error handler
+    # Error handler - log but don't crash
     async def error_handler(update, context):
-        logger.error(f"Hata: {context.error}")
-        if update and update.message:
-            await update.message.reply_text("Bir hata olustu, tekrar deneyin.")
+        logger.error(f"Hata: {context.error}", exc_info=context.error)
+        try:
+            if update and update.message:
+                await update.message.reply_text("Bir hata olustu, tekrar deneyin.")
+        except Exception:
+            pass
 
     app.add_error_handler(error_handler)
 
+    # Graceful shutdown on signals
+    def signal_handler(sig, frame):
+        logger.info(f"Signal {sig} alindi, bot kapatiliyor...")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, signal_handler)
+
     logger.info("Bot baslatiliyor...")
-    app.run_polling()
+    app.run_polling(drop_pending_updates=False)
 
 
 if __name__ == "__main__":
