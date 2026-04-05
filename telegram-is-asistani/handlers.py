@@ -88,7 +88,29 @@ async def _ai_yanit_ver(update: Update, mesaj: str) -> None:
                 f"Detaylar icin: /plan_goster"
             )
 
-    await update.message.reply_text(yanit)
+    await _uzun_mesaj_gonder(update, yanit)
+
+
+async def _uzun_mesaj_gonder(update: Update, metin: str) -> None:
+    """Telegram 4096 karakter limitini asarsa mesaji parcalar."""
+    if len(metin) <= 4000:
+        await update.message.reply_text(metin)
+        return
+
+    parcalar = []
+    while metin:
+        if len(metin) <= 4000:
+            parcalar.append(metin)
+            break
+        # Son satir sonundan bol
+        kesim = metin[:4000].rfind("\n")
+        if kesim == -1:
+            kesim = 4000
+        parcalar.append(metin[:kesim])
+        metin = metin[kesim:].lstrip("\n")
+
+    for parca in parcalar:
+        await update.message.reply_text(parca)
 
 
 async def ai_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -284,8 +306,4 @@ async def plan_goster_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"Onay Tarihi: {plan['onayland_tarih'][:10]}\n\n"
             f"{plan['plan_metni']}"
         )
-        # Telegram has a 4096 char limit per message
-        if len(metin) > 4000:
-            await update.message.reply_text(metin[:4000] + "\n\n... (devami kesildi)")
-        else:
-            await update.message.reply_text(metin)
+        await _uzun_mesaj_gonder(update, metin)
