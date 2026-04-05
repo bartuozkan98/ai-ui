@@ -6,13 +6,13 @@ Telegram grubu icin hibrit (pasif dinleme + interaktif komut) is fikri asistani 
 ## Teknik Stack
 - **Python 3.10+**
 - **python-telegram-bot 20.x** (async)
-- **anthropic SDK** (claude-sonnet-4-20250514 modeli)
+- **openai SDK** + **OpenRouter** (anthropic/claude-sonnet-4-20250514 modeli)
 - **JSON dosya tabanli storage** (veritabani gerektirmez)
 
 ## Dosya Yapisi
 - `main.py` - Bot giris noktasi, komut kayitlari ve gunluk zamanlayici
 - `handlers.py` - Tum komut handler fonksiyonlari ve pasif mesaj dinleyici
-- `claude_client.py` - Anthropic API istemcisi (analiz, plan, ozet)
+- `claude_client.py` - OpenRouter uzerinden Claude API istemcisi (analiz, plan, ozet)
 - `storage.py` - JSON dosya okuma/yazma, fikir ve plan CRUD islemleri
 - `prompts.py` - Claude prompt sablonlari (SWOT, plan, ozet)
 - `config.py` - Konfigurasyonlar (token, API key, admin listesi)
@@ -38,7 +38,7 @@ pip install -r requirements.txt
 
 `config.py` icinde veya ortam degiskenlerinde ayarla:
 - `TELEGRAM_BOT_TOKEN` - BotFather'dan alinan token
-- `ANTHROPIC_API_KEY` - Anthropic API anahtari
+- `OPENROUTER_API_KEY` - OpenRouter API anahtari
 - `ADMIN_USER_IDS` - Admin Telegram user ID listesi (bos birak = herkes admin)
 
 Botu baslat:
