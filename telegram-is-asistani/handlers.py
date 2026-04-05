@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -11,7 +12,7 @@ from config import ADMIN_USER_IDS
 # In-memory message buffer for /ozet (per chat)
 mesaj_gecmisi: dict[int, list[dict]] = defaultdict(list)
 
-# AI conversation history per chat (for /ai context)
+# AI conversation history per chat (shared among all users in the group)
 ai_gecmisi: dict[int, list[dict]] = defaultdict(list)
 
 DURUM_EMOJI = {
@@ -31,49 +32,47 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/start - Karsilama mesaji."""
     await update.message.reply_text(
         "Selam! Ben Bali, is fikri ortaginiz 👋\n\n"
-        "/ai [mesaj] - Benimle sohbet et, fikirlerini konusalim\n"
+        "Nasil kullanilir:\n"
+        "• Ozel sohbette direkt yazin, cevap veririm\n"
+        "• Grupta bana reply atin veya @mention yapin\n"
+        "• /ai [mesaj] ile de konusabilirsiniz\n\n"
+        "Diger komutlar:\n"
         "/fikirler - Kayitli fikirleri gor\n"
         "/plan_goster - Is akis planlarini gor\n\n"
-        "Hadi bir fikrin varsa konusalim!"
+        "Hadi fikirlerinizi konusalim!"
     )
 
 
-async def ai_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """/ai [mesaj] - Dogal sohbet ile fikir gelistirme."""
-    if not context.args:
-        await update.message.reply_text("Kullanim: /ai merhaba, bir fikrim var...")
-        return
-
-    mesaj = " ".join(context.args)
+async def _ai_yanit_ver(update: Update, mesaj: str) -> None:
+    """Shared AI response logic for both /ai command and direct messages."""
     chat_id = update.message.chat_id
     kullanici = update.message.from_user.full_name
 
-    # Get conversation history for this chat
+    # Shared conversation history for the entire chat/group
     gecmis = ai_gecmisi[chat_id]
 
-    yanit = await claude_client.ai_sohbet(mesaj, gecmis)
+    # Include who said what so Bali knows who's talking
+    kullanici_mesaj = f"[{kullanici}]: {mesaj}"
 
-    # Save to conversation history
-    gecmis.append({"role": "user", "content": mesaj})
+    yanit = await claude_client.ai_sohbet(kullanici_mesaj, gecmis)
+
+    # Save to shared conversation history
+    gecmis.append({"role": "user", "content": kullanici_mesaj})
     gecmis.append({"role": "assistant", "content": yanit})
 
     # Check if Claude wants to add to plan
     if "[PLANA_EKLE:" in yanit:
-        import re
         match = re.search(r"\[PLANA_EKLE:\s*(.+?)\]", yanit)
         if match:
             fikir_metni = match.group(1).strip()
 
-            # Analyze and save
             analiz = await claude_client.fikir_analiz_et(fikir_metni)
             fikir_id = storage.fikir_ekle(fikir_metni, kullanici, analiz)
 
-            # Generate plan
             plan = await claude_client.is_akis_plani_olustur(fikir_metni, analiz)
             storage.plan_kaydet(fikir_id, fikir_metni, plan)
             storage.fikir_durumu_guncelle(fikir_id, "onaylandi", plan=plan)
 
-            # Clean the tag from response and add confirmation
             yanit = yanit.replace(match.group(0), "").strip()
             yanit += (
                 f"\n\n✅ Fikir plana eklendi!\n"
@@ -84,16 +83,45 @@ async def ai_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(yanit)
 
 
-async def mesaj_kaydet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Passive listener: saves all group messages for /ozet."""
+async def ai_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/ai [mesaj] - Dogal sohbet ile fikir gelistirme."""
+    if not context.args:
+        await update.message.reply_text("Kullanim: /ai merhaba, bir fikrim var...")
+        return
+    await _ai_yanit_ver(update, " ".join(context.args))
+
+
+async def mesaj_dinle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Listens to all messages. In private chat: always respond via AI.
+    In groups: save for /ozet, respond only when bot is mentioned or replied to."""
     if not update.message or not update.message.text:
         return
+
     chat_id = update.message.chat_id
+    mesaj = update.message.text
+
+    # Always save for /ozet
     mesaj_gecmisi[chat_id].append({
         "kullanici": update.message.from_user.full_name,
-        "metin": update.message.text,
+        "metin": mesaj,
         "tarih": datetime.now().isoformat(),
     })
+
+    # Determine if we should respond
+    is_private = update.message.chat.type == "private"
+    is_reply_to_bot = (
+        update.message.reply_to_message
+        and update.message.reply_to_message.from_user
+        and update.message.reply_to_message.from_user.is_bot
+    )
+    bot_username = context.bot.username or ""
+    is_mentioned = f"@{bot_username}" in mesaj
+
+    if is_private or is_reply_to_bot or is_mentioned:
+        # Clean mention from message
+        clean_mesaj = mesaj.replace(f"@{bot_username}", "").strip()
+        if clean_mesaj:
+            await _ai_yanit_ver(update, clean_mesaj)
 
 
 async def fikir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

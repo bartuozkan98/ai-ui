@@ -12,7 +12,7 @@ from config import TELEGRAM_BOT_TOKEN, OZET_SAATI
 from handlers import (
     start_cmd,
     ai_cmd,
-    mesaj_kaydet,
+    mesaj_dinle,
     fikir_cmd,
     ozet_cmd,
     planla_cmd,
@@ -73,7 +73,7 @@ def main() -> None:
     app.add_handler(CommandHandler("plan_goster", plan_goster_cmd))
 
     # Passive message listener (captures all non-command text messages)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_kaydet))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_dinle))
 
     # Daily scheduled summary
     job_queue = app.job_queue
