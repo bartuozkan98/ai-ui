@@ -9,11 +9,17 @@ import claude_client
 import storage
 from config import ADMIN_USER_IDS
 
-# In-memory message buffer for /ozet (per chat)
-mesaj_gecmisi: dict[int, list[dict]] = defaultdict(list)
+# Load persisted histories from disk on startup
+def _yukle_gecmisler():
+    mg = defaultdict(list)
+    for k, v in storage.mesaj_gecmisi_yukle().items():
+        mg[int(k)] = v
+    ag = defaultdict(list)
+    for k, v in storage.sohbet_gecmisi_yukle().items():
+        ag[int(k)] = v
+    return mg, ag
 
-# AI conversation history per chat (shared among all users in the group)
-ai_gecmisi: dict[int, list[dict]] = defaultdict(list)
+mesaj_gecmisi, ai_gecmisi = _yukle_gecmisler()
 
 DURUM_EMOJI = {
     "beklemede": "[Beklemede]",
@@ -57,9 +63,10 @@ async def _ai_yanit_ver(update: Update, mesaj: str) -> None:
 
     yanit = await claude_client.ai_sohbet(kullanici_mesaj, gecmis)
 
-    # Save to shared conversation history
+    # Save to shared conversation history (memory + disk)
     gecmis.append({"role": "user", "content": kullanici_mesaj})
     gecmis.append({"role": "assistant", "content": yanit})
+    storage.sohbet_gecmisi_kaydet(chat_id, gecmis)
 
     # Check if Claude wants to add to plan
     if "[PLANA_EKLE:" in yanit:
@@ -105,6 +112,7 @@ async def mesaj_dinle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         "metin": update.message.text,
         "tarih": datetime.now().isoformat(),
     })
+    storage.mesaj_gecmisi_kaydet(chat_id, mesaj_gecmisi[chat_id])
 
 
 async def fikir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

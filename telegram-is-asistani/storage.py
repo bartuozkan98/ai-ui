@@ -6,6 +6,8 @@ from config import DATA_DIR
 
 FIKIRLER_PATH = os.path.join(DATA_DIR, "fikirler.json")
 IS_AKIS_PATH = os.path.join(DATA_DIR, "is_akis_plani.json")
+SOHBET_PATH = os.path.join(DATA_DIR, "sohbet_gecmisi.json")
+MESAJLAR_PATH = os.path.join(DATA_DIR, "mesaj_gecmisi.json")
 
 
 def _ensure_data_files() -> None:
@@ -14,6 +16,10 @@ def _ensure_data_files() -> None:
         _write_json(FIKIRLER_PATH, {})
     if not os.path.exists(IS_AKIS_PATH):
         _write_json(IS_AKIS_PATH, {"planlar": []})
+    if not os.path.exists(SOHBET_PATH):
+        _write_json(SOHBET_PATH, {})
+    if not os.path.exists(MESAJLAR_PATH):
+        _write_json(MESAJLAR_PATH, {})
 
 
 def _read_json(path: str) -> dict | list:
@@ -115,3 +121,33 @@ def plan_kaydet(fikir_id: str, fikir_metni: str, plan_metni: str) -> None:
 def onaylanan_planlari_getir() -> list[dict]:
     data = _get_planlar()
     return [p for p in data["planlar"] if p["durum"] == "aktif"]
+
+
+# --- Sohbet gecmisi (AI context) ---
+
+def sohbet_gecmisi_yukle() -> dict[str, list[dict]]:
+    _ensure_data_files()
+    return _read_json(SOHBET_PATH)
+
+
+def sohbet_gecmisi_kaydet(chat_id: int, gecmis: list[dict]) -> None:
+    _ensure_data_files()
+    data = _read_json(SOHBET_PATH)
+    # Son 50 mesaji tut (25 user + 25 assistant)
+    data[str(chat_id)] = gecmis[-50:]
+    _write_json(SOHBET_PATH, data)
+
+
+# --- Mesaj gecmisi (ozet icin) ---
+
+def mesaj_gecmisi_yukle() -> dict[str, list[dict]]:
+    _ensure_data_files()
+    return _read_json(MESAJLAR_PATH)
+
+
+def mesaj_gecmisi_kaydet(chat_id: int, mesajlar: list[dict]) -> None:
+    _ensure_data_files()
+    data = _read_json(MESAJLAR_PATH)
+    # Son 500 mesaji tut
+    data[str(chat_id)] = mesajlar[-500:]
+    _write_json(MESAJLAR_PATH, data)
