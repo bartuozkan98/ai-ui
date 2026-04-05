@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 .env
+data/sohbet_gecmisi.json
+data/mesaj_gecmisi.json
