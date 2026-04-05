@@ -86,6 +86,8 @@ async def _ai_yanit_ver(update: Update, mesaj: str) -> None:
 
 async def ai_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/ai [mesaj] - Dogal sohbet ile fikir gelistirme."""
+    if not update.message:
+        return
     if not context.args:
         await update.message.reply_text("Kullanim: /ai merhaba, bir fikrim var...")
         return
