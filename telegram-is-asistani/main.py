@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 
-from config import TELEGRAM_BOT_TOKEN, OZET_SAATI
+from config import TELEGRAM_BOT_TOKEN
 from handlers import (
     start_cmd,
     ai_cmd,
@@ -29,18 +29,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Track last summary time per chat to avoid duplicate messages
+son_ozet_zamani: dict[int, str] = {}
+
+
 async def otomatik_ozet(context) -> None:
-    """Scheduled daily summary - sends to all chats that have message history."""
-    from handlers import mesaj_gecmisi, ozet_cmd
-    from datetime import datetime, timedelta
+    """Scheduled summary - runs at 12:00 and 21:00, summarizes messages since last summary."""
+    from handlers import mesaj_gecmisi
+    from datetime import datetime
     import claude_client
 
-    son_24_saat = datetime.now() - timedelta(hours=24)
+    now = datetime.now()
 
     for chat_id, mesajlar in mesaj_gecmisi.items():
+        # Get messages since last summary (or last 12 hours if first run)
+        son_zaman = son_ozet_zamani.get(chat_id)
+        if son_zaman:
+            kesim = datetime.fromisoformat(son_zaman)
+        else:
+            from datetime import timedelta
+            kesim = now - timedelta(hours=12)
+
         son_mesajlar = [
             m for m in mesajlar
-            if datetime.fromisoformat(m["tarih"]) > son_24_saat
+            if datetime.fromisoformat(m["tarih"]) > kesim
         ]
         if not son_mesajlar:
             continue
@@ -50,10 +62,12 @@ async def otomatik_ozet(context) -> None:
         )
         try:
             ozet = await claude_client.konusma_ozeti_olustur(mesaj_metni)
+            saat = "🕐 Ogle" if now.hour < 15 else "🌙 Aksam"
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"Gunluk Otomatik Ozet (Son 24 Saat):\n\n{ozet}",
+                text=f"{saat} Ozeti\n\n{ozet}",
             )
+            son_ozet_zamani[chat_id] = now.isoformat()
         except Exception as e:
             logger.error(f"Otomatik ozet hatasi (chat {chat_id}): {e}")
 
@@ -75,15 +89,20 @@ def main() -> None:
     # Passive message listener (captures all non-command text messages)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_dinle))
 
-    # Daily scheduled summary
+    # Scheduled summaries at 12:00 and 21:00
     job_queue = app.job_queue
     if job_queue:
         job_queue.run_daily(
             otomatik_ozet,
-            time=time(hour=OZET_SAATI, minute=0),
-            name="gunluk_ozet",
+            time=time(hour=12, minute=0),
+            name="ogle_ozeti",
         )
-        logger.info(f"Gunluk otomatik ozet saat {OZET_SAATI:02d}:00 icin ayarlandi.")
+        job_queue.run_daily(
+            otomatik_ozet,
+            time=time(hour=21, minute=0),
+            name="aksam_ozeti",
+        )
+        logger.info("Otomatik ozet: 12:00 ve 21:00 icin ayarlandi.")
 
     # Error handler
     async def error_handler(update, context):

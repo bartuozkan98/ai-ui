@@ -32,14 +32,15 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/start - Karsilama mesaji."""
     await update.message.reply_text(
         "Selam! Ben Bali, is fikri ortaginiz 👋\n\n"
-        "Nasil kullanilir:\n"
-        "• Ozel sohbette direkt yazin, cevap veririm\n"
-        "• Grupta bana reply atin veya @mention yapin\n"
-        "• /ai [mesaj] ile de konusabilirsiniz\n\n"
-        "Diger komutlar:\n"
+        "Nasil calisiyorum:\n"
+        "• Tum mesajlarinizi sessizce kaydediyorum\n"
+        "• Her gun 12:00 ve 21:00'de ozet + fikir onerisi veriyorum\n"
+        "• /ai [mesaj] ile aninda benimle konusabilirsiniz\n\n"
+        "Komutlar:\n"
+        "/ai [mesaj] - Benimle sohbet et, fikir gelistir\n"
         "/fikirler - Kayitli fikirleri gor\n"
-        "/plan_goster - Is akis planlarini gor\n\n"
-        "Hadi fikirlerinizi konusalim!"
+        "/plan_goster - Is akis planlarini gor\n"
+        "/ozet - Manuel ozet al"
     )
 
 
@@ -92,36 +93,16 @@ async def ai_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def mesaj_dinle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Listens to all messages. In private chat: always respond via AI.
-    In groups: save for /ozet, respond only when bot is mentioned or replied to."""
+    """Passively saves all messages for daily summaries. Never responds."""
     if not update.message or not update.message.text:
         return
 
     chat_id = update.message.chat_id
-    mesaj = update.message.text
-
-    # Always save for /ozet
     mesaj_gecmisi[chat_id].append({
         "kullanici": update.message.from_user.full_name,
-        "metin": mesaj,
+        "metin": update.message.text,
         "tarih": datetime.now().isoformat(),
     })
-
-    # Determine if we should respond
-    is_private = update.message.chat.type == "private"
-    is_reply_to_bot = (
-        update.message.reply_to_message
-        and update.message.reply_to_message.from_user
-        and update.message.reply_to_message.from_user.is_bot
-    )
-    bot_username = context.bot.username or ""
-    is_mentioned = f"@{bot_username}" in mesaj
-
-    if is_private or is_reply_to_bot or is_mentioned:
-        # Clean mention from message
-        clean_mesaj = mesaj.replace(f"@{bot_username}", "").strip()
-        if clean_mesaj:
-            await _ai_yanit_ver(update, clean_mesaj)
 
 
 async def fikir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

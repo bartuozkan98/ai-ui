@@ -45,7 +45,21 @@ BAŞARI KRİTERLERİ:
 POTANSİYEL ENGELLER:
 - (2-3 madde)"""
 
-KONUSMA_OZETI_PROMPT = """Aşağıdaki grup konuşmasını analiz et. İçinde geçen iş fikirlerini, önerileri ve "bunu yapalım" tarzı kararları tespit et. Her birini ayrı fikir olarak listele. Eğer hiç fikir yoksa "Konuşmada belirgin bir iş fikri tespit edilemedi." yaz.
+KONUSMA_OZETI_PROMPT = """Aşağıdaki grup konuşmasını analiz et ve şu formatta özetle:
+
+📋 KİM NE DEDİ:
+Her kişi için 1-2 cümlelik özet yaz.
+
+💡 TESPİT EDİLEN FİKİRLER:
+Konuşmada geçen iş fikirleri, öneriler ve "bunu yapalım" tarzı kararları listele. Her birine kısa bir numara ver (1, 2, 3...).
+
+🎯 BALİ'NİN ÖNERİSİ:
+Bu fikirler hakkında kendi görüşünü 2-3 cümleyle paylaş. Hangisi öncelikli olmalı, neden?
+
+Eğer hiç fikir yoksa sadece kim ne dedi kısmını yaz ve "Bugün belirgin bir iş fikri konuşulmadı" de.
+
+Son olarak şunu ekle:
+"Bu fikirlerden birini iş akışına eklemek ister misiniz? /ai plana ekle [fikir numarası] yazabilirsiniz."
 
 KONUŞMA:
 {mesajlar}"""

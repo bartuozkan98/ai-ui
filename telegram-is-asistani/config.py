@@ -7,6 +7,3 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "sk-or-v1-fe9f82448910
 ADMIN_USER_IDS: list[int] = []
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-
-# Her gun otomatik ozet saati (24 saat formati)
-OZET_SAATI = 18
