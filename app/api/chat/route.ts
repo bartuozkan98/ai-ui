@@ -11,6 +11,7 @@ const DATA_DIR = path.join(process.cwd(), 'telegram-is-asistani', 'data');
 const WEB_MESAJ_PATH = path.join(DATA_DIR, 'web_mesaj.json');
 const FIKIRLER_PATH = path.join(DATA_DIR, 'fikirler.json');
 const IS_AKIS_PATH = path.join(DATA_DIR, 'is_akis_plani.json');
+const PERMANENT_PATH = path.join(DATA_DIR, 'permanent_gecmis.json');
 
 function readJson<T>(p: string, fallback: T): T {
   if (!fs.existsSync(p)) return fallback;
@@ -107,7 +108,18 @@ export async function POST(request: Request) {
       .map((p: any) => `- ${p.fikir_id}: ${p.fikir_metni}`)
       .join('\n');
 
+    // Kalici baglam: asla unutulmayan ekip gecmisi
+    const permanentData = readJson<{ messages: any[] }>(PERMANENT_PATH, {
+      messages: [],
+    });
+    const kaliciBaglam = (permanentData.messages || [])
+      .map((m: any) => `[${m.kullanici || 'Bilinmeyen'}]: ${m.metin || ''}`)
+      .join('\n');
+
     const systemPrompt = `Sen Bali'sin, bir is fikri ve plan gelistirme asistanisin. Turkce konusursun. Sade, dostane, net.
+
+KALICI BAGLAM (bu konusmalari her zaman hatirla - ekibin gecmis planlari ve kararlari):
+${kaliciBaglam || '(kalici baglam bos)'}
 
 MEVCUT PLANLAR:
 ${planOzeti || '(henuz plan yok)'}

@@ -1,5 +1,6 @@
 from openai import OpenAI
 
+import storage
 from config import OPENROUTER_API_KEY
 from prompts import (
     FIKIR_ANALIZ_PROMPT,
@@ -45,7 +46,20 @@ async def ai_sohbet(mesaj: str, gecmis: list[dict]) -> str:
         for m in gecmis[-20:]  # son 20 mesaj
     ) if gecmis else "(ilk mesaj)"
 
-    system_prompt = AI_SOHBET_SYSTEM.format(gecmis=gecmis_metni)
+    # Kalici baglam: asla unutulmayan ekip gecmisi
+    kalici_mesajlar = storage.permanent_gecmis_yukle()
+    if kalici_mesajlar:
+        kalici_baglam = "\n".join(
+            f"[{m.get('kullanici', 'Bilinmeyen')}]: {m.get('metin', '')}"
+            for m in kalici_mesajlar
+        )
+    else:
+        kalici_baglam = "(kalici baglam bos)"
+
+    system_prompt = AI_SOHBET_SYSTEM.format(
+        gecmis=gecmis_metni,
+        kalici_baglam=kalici_baglam,
+    )
 
     messages = [{"role": "system", "content": system_prompt}]
     for m in gecmis[-20:]:

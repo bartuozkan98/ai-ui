@@ -10,7 +10,7 @@ interface Message {
   tarih: string;
   bot?: boolean;
   tip?: string;
-  source: 'telegram' | 'web';
+  source: 'telegram' | 'web' | 'permanent';
 }
 
 function readJson<T>(p: string, fallback: T): T {
@@ -25,6 +25,23 @@ function readJson<T>(p: string, fallback: T): T {
 export async function GET() {
   try {
     const result: Message[] = [];
+
+    // Kalici (permanent) gecmis - eski, asla unutulmayan konusmalar
+    const permData = readJson<{ messages?: any[] }>(
+      path.join(DATA_DIR, 'permanent_gecmis.json'),
+      { messages: [] }
+    );
+    for (const m of permData.messages || []) {
+      if (!m || !m.tarih) continue;
+      const kullanici = m.kullanici || 'Bilinmeyen';
+      result.push({
+        kullanici,
+        metin: m.metin || '',
+        tarih: m.tarih,
+        bot: kullanici.toLowerCase() === 'bali',
+        source: 'permanent',
+      });
+    }
 
     // Telegram mesajlari
     const telData = readJson<Record<string, any[]>>(

@@ -56,9 +56,61 @@ html { scroll-behavior: smooth; }
 /* Focus styles - Airbnb style */
 input:focus, select:focus, textarea:focus {
   outline: none;
+}
+.airbnb-input:focus {
   border-color: #222222 !important;
   box-shadow: 0 0 0 1px #222222;
 }
+
+/* Bali gradient utilities */
+.bali-gradient {
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%);
+}
+.bali-gradient-soft {
+  background: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #FDF2F8 100%);
+}
+.bali-glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+.bali-shadow-sm {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+.bali-shadow {
+  box-shadow: 0 4px 6px -1px rgba(16, 24, 40, 0.06), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+}
+.bali-shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -4px rgba(16, 24, 40, 0.06);
+}
+.bali-shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(16, 24, 40, 0.1), 0 8px 10px -6px rgba(16, 24, 40, 0.06);
+}
+.bali-shadow-brand {
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.4);
+}
+
+/* Smooth hover lift */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-1px);
+}
+
+/* Pulsing dot for live indicator */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.9); }
+}
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+/* Message bubble reveal */
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-bubble { animation: bubble-in 0.25s ease-out; }
 
 /* Skeleton loading */
 @keyframes shimmer {

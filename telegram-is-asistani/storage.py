@@ -8,6 +8,7 @@ FIKIRLER_PATH = os.path.join(DATA_DIR, "fikirler.json")
 IS_AKIS_PATH = os.path.join(DATA_DIR, "is_akis_plani.json")
 SOHBET_PATH = os.path.join(DATA_DIR, "sohbet_gecmisi.json")
 MESAJLAR_PATH = os.path.join(DATA_DIR, "mesaj_gecmisi.json")
+PERMANENT_PATH = os.path.join(DATA_DIR, "permanent_gecmis.json")
 
 
 def _ensure_data_files() -> None:
@@ -20,6 +21,8 @@ def _ensure_data_files() -> None:
         _write_json(SOHBET_PATH, {})
     if not os.path.exists(MESAJLAR_PATH):
         _write_json(MESAJLAR_PATH, {})
+    if not os.path.exists(PERMANENT_PATH):
+        _write_json(PERMANENT_PATH, {"messages": []})
 
 
 def _read_json(path: str) -> dict | list:
@@ -151,3 +154,34 @@ def mesaj_gecmisi_kaydet(chat_id: int, mesajlar: list[dict]) -> None:
     # Son 500 mesaji tut
     data[str(chat_id)] = mesajlar[-500:]
     _write_json(MESAJLAR_PATH, data)
+
+
+# --- Kalici (permanent) gecmis: bot'un asla unutmadigi ek baglam ---
+
+def permanent_gecmis_yukle() -> list[dict]:
+    """Bot'un asla unutmadigi kalici konusma baglami.
+
+    Normal sohbet limitleri (son 20/50 mesaj) bu veriyi etkilemez.
+    Her /ai ve web chat cagrisinda prompt'a eklenir.
+    """
+    _ensure_data_files()
+    data = _read_json(PERMANENT_PATH)
+    if isinstance(data, dict):
+        return data.get("messages", [])
+    return []
+
+
+def permanent_gecmis_kaydet(messages: list[dict]) -> None:
+    _ensure_data_files()
+    _write_json(PERMANENT_PATH, {"messages": messages})
+
+
+def permanent_gecmis_ekle(kullanici: str, metin: str, tarih: str | None = None) -> None:
+    """Kalici gecmise tek bir mesaj ekler."""
+    mesajlar = permanent_gecmis_yukle()
+    mesajlar.append({
+        "kullanici": kullanici,
+        "metin": metin,
+        "tarih": tarih or datetime.now().isoformat(),
+    })
+    permanent_gecmis_kaydet(mesajlar)

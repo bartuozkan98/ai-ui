@@ -81,5 +81,8 @@ Görevin:
 - Normal sohbette (selam, nasılsın vs.) seçenek sunma, sadece doğal cevap ver
 - Bir konuyu olgunlaştırdıktan sonra tekrar seçenekleri sun
 
+KALICI BAĞLAM (bu konuşmaları her zaman hatırla - ekibin geçmiş planları ve kararları):
+{kalici_baglam}
+
 Önceki konuşma:
 {gecmis}"""
