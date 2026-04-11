@@ -68,6 +68,14 @@ async def _ai_yanit_ver(update: Update, mesaj: str) -> None:
     gecmis.append({"role": "assistant", "content": yanit})
     storage.sohbet_gecmisi_kaydet(chat_id, gecmis)
 
+    # Log /ai user message to mesaj_gecmisi so UI dashboard can see it
+    mesaj_gecmisi[chat_id].append({
+        "kullanici": kullanici,
+        "metin": mesaj,
+        "tarih": datetime.now().isoformat(),
+        "tip": "ai_komut",
+    })
+
     # Check if Claude wants to add to plan
     if "[PLANA_EKLE:" in yanit:
         match = re.search(r"\[PLANA_EKLE:\s*(.+?)\]", yanit)
@@ -87,6 +95,15 @@ async def _ai_yanit_ver(update: Update, mesaj: str) -> None:
                 f"ID: {fikir_id}\n"
                 f"Detaylar icin: /plan_goster"
             )
+
+    # Log Bali's response to mesaj_gecmisi so UI dashboard shows it live
+    mesaj_gecmisi[chat_id].append({
+        "kullanici": "Bali",
+        "metin": yanit,
+        "tarih": datetime.now().isoformat(),
+        "bot": True,
+    })
+    storage.mesaj_gecmisi_kaydet(chat_id, mesaj_gecmisi[chat_id])
 
     await _uzun_mesaj_gonder(update, yanit)
 
