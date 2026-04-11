@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const OPENROUTER_API_KEY =
-  process.env.OPENROUTER_API_KEY ||
-  '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';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
 const MODEL = 'anthropic/claude-sonnet-4';
 const DATA_DIR = path.join(process.cwd(), 'telegram-is-asistani', 'data');
@@ -71,6 +69,16 @@ function sonrakiFikirId(fikirler: Record<string, any>): string {
 
 export async function POST(request: Request) {
   try {
+    if (!OPENROUTER_API_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            'OPENROUTER_API_KEY ortam degiskeni bos. systemd service dosyasinda Environment=OPENROUTER_API_KEY=... ekle.',
+        },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { message, user = 'Web' } = body;
 
