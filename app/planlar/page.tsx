@@ -1,13 +1,13 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plan, Fikir, TimelineMessage, TaskState, TaskComment, Section, HavuzItem, parsePlan, serializePlan, ASSIGNEES, ASSIGNEE_COLORS } from './components/types';
+import { Plan, TimelineMessage, TaskState, Section, parsePlan, serializePlan } from './components/types';
 import { useCanvas, useNodeDrag, NodePos } from './components/canvas';
 import ChatDrawer from './components/ChatDrawer';
 import CanvasNode from './components/CanvasNode';
 
-const NODE_W = 320;
-const NODE_GAP_X = 120;
-const ROW_GAP = 80;
+const NODE_W = 280;
+const NODE_GAP_X = 100;
+const ROW_GAP = 60;
 
 interface PlanSections { plan: Plan; sections: Section[]; }
 
@@ -34,15 +34,7 @@ export default function PlanlarPage() {
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [positions, setPositions] = useState<Record<string, NodePos>>({});
-  // Pool (havuz)
-  const [allHavuz, setAllHavuz] = useState<Record<string, HavuzItem[]>>({});
-  const [havuzOpen, setHavuzOpen] = useState(false);
-  const [havuzInput, setHavuzInput] = useState('');
-  const [havuzPlanId, setHavuzPlanId] = useState('');
   const [ordering, setOrdering] = useState(false);
-  // Detail modal
-  const [detailKey, setDetailKey] = useState<{ planId: string; index: number } | null>(null);
-  const [detailComment, setDetailComment] = useState('');
 
   const canvas = useCanvas();
 
@@ -53,12 +45,11 @@ export default function PlanlarPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [pR, tR, hR, hvR] = await Promise.all([fetch('/api/planlar'), fetch('/api/tasks'), fetch('/api/telegram-history'), fetch('/api/havuz')]);
-      const pD = await pR.json(), tD = await tR.json(), hD = await hR.json(), hvD = await hvR.json();
+      const [pR, tR, hR] = await Promise.all([fetch('/api/planlar'), fetch('/api/tasks'), fetch('/api/telegram-history')]);
+      const pD = await pR.json(), tD = await tR.json(), hD = await hR.json();
       setPlanlar(pD.planlar || []);
       setTasks(tD || {});
       setTimeline(hD.messages || []);
-      setAllHavuz(hvD && typeof hvD === 'object' && !Array.isArray(hvD) ? hvD : {});
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
 
@@ -66,8 +57,6 @@ export default function PlanlarPage() {
 
   const groups: PlanSections[] = useMemo(() =>
     planlar.map(p => ({ plan: p, sections: parsePlan(p.plan_metni) })), [planlar]);
-
-  const totalHavuz = useMemo(() => Object.values(allHavuz).flat(), [allHavuz]);
 
   useEffect(() => {
     setPositions(prev => {
@@ -103,29 +92,6 @@ export default function PlanlarPage() {
     const s = [...sections]; s.splice(i, 1); savePlanFor(planId, s);
   }
 
-  // Pool operations
-  async function addToHavuz() {
-    if (!havuzInput.trim() || !havuzPlanId) return;
-    await fetch('/api/havuz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: havuzPlanId, metin: havuzInput.trim() }) });
-    setHavuzInput('');
-    await fetchData();
-  }
-
-  async function removeFromHavuz(planId: string, itemId: string) {
-    await fetch('/api/havuz', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: planId, item_id: itemId }) });
-    await fetchData();
-  }
-
-  async function aiOrder(planId: string) {
-    if (ordering) return;
-    setOrdering(true);
-    try {
-      await fetch('/api/havuz/sirala', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: planId }) });
-      setPositions({});
-      await fetchData();
-    } catch {} finally { setOrdering(false); }
-  }
-
   async function updateAllPlans() {
     if (ordering) return;
     setOrdering(true);
@@ -150,12 +116,6 @@ export default function PlanlarPage() {
     return a;
   }, [positions, groups]);
 
-  // Detail modal data
-  const detailGroup = detailKey ? groups.find(g => g.plan.fikir_id === detailKey.planId) : null;
-  const detailSection = detailGroup ? detailGroup.sections[detailKey!.index] : null;
-  const detailTask = detailKey ? (tasks[detailKey.planId]?.[`step-${detailKey.index}`] || {}) : {};
-  const detailSubTasks = detailKey ? (tasks[detailKey.planId] || {}) : {};
-
   if (loading) return (
     <div className="h-screen bg-gray-50 flex items-center justify-center">
       <div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
@@ -165,36 +125,32 @@ export default function PlanlarPage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-[#fafafa]">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bali-gradient rounded-lg flex items-center justify-center"><span className="text-white text-xs font-bold">B</span></div>
-          <span className="text-sm font-bold text-gray-900">Bali</span>
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between shrink-0 z-30">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bali-gradient rounded-lg flex items-center justify-center"><span className="text-white text-[10px] sm:text-xs font-bold">B</span></div>
+          <span className="text-xs sm:text-sm font-bold text-gray-900">Bali</span>
           {planlar.length > 0 && (
-            <span className="text-xs text-gray-400">{planlar.length} plan, {groups.reduce((s, g) => s + g.sections.length, 0)} asama</span>
+            <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">{planlar.length} plan, {groups.reduce((s, g) => s + g.sections.length, 0)} asama</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">{Math.round(canvas.zoom * 100)}%</span>
-          <button onClick={canvas.resetView} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded-lg hover:bg-gray-100">Sifirla</button>
-          <button onClick={() => setChatOpen(true)} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-            Sohbet
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-[10px] sm:text-xs text-gray-400">{Math.round(canvas.zoom * 100)}%</span>
+          <button onClick={canvas.resetView} className="text-[10px] sm:text-xs text-gray-500 hover:text-gray-800 px-1.5 sm:px-2 py-1 rounded-lg hover:bg-gray-100">Sifirla</button>
+          <button onClick={() => setChatOpen(true)} className="h-8 sm:h-9 px-3 sm:px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-colors">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            <span className="hidden sm:inline">Sohbet</span>
           </button>
         </div>
       </header>
 
       {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 shrink-0">
-        <button onClick={() => setHavuzOpen(true)} className="h-8 px-4 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-          Havuz {totalHavuz.length > 0 && <span className="bg-amber-200 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{totalHavuz.length}</span>}
-        </button>
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3 shrink-0">
         {planlar.length > 0 && (
-          <button onClick={updateAllPlans} disabled={ordering} className="h-8 px-4 bg-violet-50 hover:bg-violet-100 text-violet-700 disabled:opacity-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+          <button onClick={updateAllPlans} disabled={ordering} className="h-7 sm:h-8 px-3 sm:px-4 bg-violet-50 hover:bg-violet-100 text-violet-700 disabled:opacity-50 rounded-lg text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 transition-colors">
             {ordering ? (
-              <><div className="w-3 h-3 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" /> Guncelleniyor...</>
+              <><div className="w-3 h-3 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" /> <span className="hidden sm:inline">Guncelleniyor...</span></>
             ) : (
-              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Asamalari Guncelle</>
+              <><svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Asamalari Guncelle</>
             )}
           </button>
         )}
@@ -205,18 +161,19 @@ export default function PlanlarPage() {
           const pct = total > 0 ? Math.round(done / total * 100) : 0;
           return total > 0 ? (
             <div className="flex items-center gap-2">
-              <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="w-20 sm:w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <span className="text-xs font-semibold text-gray-500">{pct}%</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-gray-500">{pct}%</span>
             </div>
           ) : null;
         })()}
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing relative"
-        onMouseDown={canvas.onMouseDown} onMouseMove={canvas.onMouseMove} onMouseUp={canvas.onMouseUp} onWheel={canvas.onWheel}>
+      <div className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing relative touch-none"
+        onMouseDown={canvas.onMouseDown} onMouseMove={canvas.onMouseMove} onMouseUp={canvas.onMouseUp} onWheel={canvas.onWheel}
+        onTouchStart={canvas.onTouchStart} onTouchMove={canvas.onTouchMove} onTouchEnd={canvas.onTouchEnd}>
 
         {planlar.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center">
@@ -255,7 +212,7 @@ export default function PlanlarPage() {
                     task={tasks[g.plan.fikir_id]?.[`step-${i}`] || {}}
                     planId={g.plan.fikir_id} pos={pos}
                     onUpdateTask={updateTask} onDelete={() => deleteStage(g.plan.fikir_id, g.sections, i)}
-                    onDragStart={nodeDrag.startDrag} onOpenDetail={() => setDetailKey({ planId: g.plan.fikir_id, index: i })}
+                    onDragStart={nodeDrag.startDrag}
                     zoom={canvas.zoom} subTasks={tasks[g.plan.fikir_id] || {}} />
                 </div>
               );
@@ -265,155 +222,10 @@ export default function PlanlarPage() {
         )}
       </div>
 
-      {/* Pool (Havuz) drawer - left side */}
-      {havuzOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={() => setHavuzOpen(false)} />}
-      <div className={`fixed top-0 left-0 h-full w-full sm:w-[380px] bg-white z-50 flex flex-col transition-transform duration-300 shadow-2xl ${havuzOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div>
-            <h3 className="text-sm font-bold text-gray-900">Asama Havuzu</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">Sirasiz fikirler — AI siralamadan once</p>
-          </div>
-          <button onClick={() => setHavuzOpen(false)} className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {totalHavuz.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <svg className="w-7 h-7 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-              </div>
-              <p className="text-sm text-gray-500">Havuz bos</p>
-              <p className="text-xs text-gray-400 mt-1">Asama ekle, sonra AI ile sirala</p>
-            </div>
-          )}
-          {planlar.map(p => {
-            const items = allHavuz[p.fikir_id] || [];
-            if (items.length === 0) return null;
-            return (
-              <div key={p.fikir_id}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-indigo-600">{p.fikir_id} — {p.fikir_metni.slice(0, 30)}</span>
-                  <button onClick={() => { aiOrder(p.fikir_id); setHavuzOpen(false); }} disabled={ordering}
-                    className="text-[10px] font-semibold text-violet-600 hover:text-violet-800 px-2 py-1 rounded-lg hover:bg-violet-50">
-                    {ordering ? '...' : 'AI Sirala'}
-                  </button>
-                </div>
-                <div className="space-y-1.5">
-                  {items.map(item => (
-                    <div key={item.id} className="bg-gray-50 rounded-xl p-3 flex items-start gap-3 group">
-                      <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-800">{item.metin}</p>
-                        <span className="text-[10px] text-gray-400">{item.kaynak}</span>
-                      </div>
-                      <button onClick={() => removeFromHavuz(p.fikir_id, item.id)} className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="px-5 py-4 border-t border-gray-100 space-y-3">
-          <select value={havuzPlanId} onChange={e => setHavuzPlanId(e.target.value)}
-            className="w-full text-xs font-medium bg-gray-50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-amber-200 cursor-pointer">
-            <option value="">Plan sec...</option>
-            {planlar.map(p => <option key={p.fikir_id} value={p.fikir_id}>{p.fikir_id} — {p.fikir_metni.slice(0, 40)}</option>)}
-          </select>
-          <div className="flex gap-2">
-            <input type="text" value={havuzInput} onChange={e => setHavuzInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addToHavuz()}
-              placeholder="Yeni asama ekle..." className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-200" />
-            <button onClick={addToHavuz} disabled={!havuzInput.trim() || !havuzPlanId}
-              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">Ekle</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stage Detail Modal */}
-      {detailKey && detailSection && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex items-center justify-center p-4" onClick={() => { setDetailKey(null); setDetailComment(''); }}>
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-base font-bold ${detailTask.done ? 'bg-emerald-500 text-white' : 'bg-indigo-100 text-indigo-600'}`}>
-                  {detailTask.done ? (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                  ) : detailKey.index + 1}
-                </div>
-                <div className="flex-1">
-                  <span className="text-[10px] font-bold text-indigo-500">{detailKey.planId}</span>
-                  <h2 className="text-lg font-bold text-gray-900">{detailSection.title || `Asama ${detailKey.index + 1}`}</h2>
-                  {detailSection.description && <p className="text-sm text-gray-500 mt-1 leading-relaxed">{detailSection.description}</p>}
-                </div>
-                <button onClick={() => { setDetailKey(null); setDetailComment(''); }}
-                  className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="flex items-center gap-3 mt-4">
-                <button onClick={() => updateTask(detailKey.planId, `step-${detailKey.index}`, 'done', !detailTask.done)}
-                  className={`h-9 px-4 rounded-lg text-xs font-semibold transition-all ${detailTask.done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'}`}>
-                  {detailTask.done ? 'Tamamlandi' : 'Tamamla'}
-                </button>
-                <select value={detailTask.assignee || ''}
-                  onChange={e => updateTask(detailKey.planId, `step-${detailKey.index}`, 'assignee', e.target.value)}
-                  className={`h-9 text-xs font-semibold px-3 rounded-lg border-0 cursor-pointer ${detailTask.assignee ? ASSIGNEE_COLORS[detailTask.assignee] : 'bg-gray-100 text-gray-400'}`}>
-                  <option value="">Kisi Ata</option>
-                  {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-            {detailSection.items.length > 0 && (
-              <div className="px-6 py-4 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Yapilacaklar</h4>
-                <div className="space-y-1">
-                  {detailSection.items.map((item, j) => {
-                    const subKey = `step-${detailKey.index}-sub-${j}`;
-                    const subDone = detailSubTasks[subKey]?.done || false;
-                    return (
-                      <div key={j} className="flex items-start gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
-                        <button onClick={() => updateTask(detailKey.planId, subKey, 'done', !subDone)}
-                          className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${subDone ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 hover:border-indigo-400'}`}>
-                          {subDone && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
-                        </button>
-                        <span className={`text-sm ${subDone ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            <div className="px-6 py-4">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Notlar</h4>
-              {(detailTask.comments || []).length === 0 && <p className="text-xs text-gray-300 mb-3">Henuz not yok</p>}
-              {(detailTask.comments || []).map((c: TaskComment, ci: number) => (
-                <div key={ci} className="flex gap-2 mb-2 text-sm">
-                  <span className="text-gray-300 shrink-0">•</span>
-                  <div><p className="text-gray-700">{c.text}</p><span className="text-[10px] text-gray-300">{new Date(c.date).toLocaleString('tr-TR')}</span></div>
-                </div>
-              ))}
-              <div className="flex gap-2 mt-3">
-                <input type="text" value={detailComment} onChange={e => setDetailComment(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && detailComment.trim()) { updateTask(detailKey.planId, `step-${detailKey.index}`, 'comment', detailComment.trim()); setDetailComment(''); } }}
-                  placeholder="Not ekle..." className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-200" />
-                <button onClick={() => { if (detailComment.trim()) { updateTask(detailKey.planId, `step-${detailKey.index}`, 'comment', detailComment.trim()); setDetailComment(''); } }}
-                  disabled={!detailComment.trim()} className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">Ekle</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Chat FAB */}
       {!chatOpen && (
-        <button onClick={() => setChatOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bali-gradient text-white rounded-full flex items-center justify-center bali-shadow-brand hover:scale-105 active:scale-95 transition-transform z-30">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        <button onClick={() => setChatOpen(true)} className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bali-gradient text-white rounded-full flex items-center justify-center bali-shadow-brand hover:scale-105 active:scale-95 transition-transform z-30">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         </button>
       )}
 

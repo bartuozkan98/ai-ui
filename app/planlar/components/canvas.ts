@@ -7,40 +7,58 @@ export function useCanvas() {
   const [pan, setPan] = useState<NodePos>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const isPanning = useRef(false);
-  const lastMouse = useRef<NodePos>({ x: 0, y: 0 });
+  const lastPos = useRef<NodePos>({ x: 0, y: 0 });
 
+  // Mouse pan
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.target === e.currentTarget)) {
       isPanning.current = true;
-      lastMouse.current = { x: e.clientX, y: e.clientY };
+      lastPos.current = { x: e.clientX, y: e.clientY };
     }
   }, []);
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isPanning.current) return;
-    const dx = e.clientX - lastMouse.current.x;
-    const dy = e.clientY - lastMouse.current.y;
-    lastMouse.current = { x: e.clientX, y: e.clientY };
+    const dx = e.clientX - lastPos.current.x;
+    const dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
     setPan(p => ({ x: p.x + dx, y: p.y + dy }));
   }, []);
 
   const onMouseUp = useCallback(() => { isPanning.current = false; }, []);
 
+  // Scroll = pan, Ctrl+scroll = zoom
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     if (e.ctrlKey || e.metaKey) {
-      // Ctrl/Cmd + scroll = zoom
       const delta = e.deltaY > 0 ? 0.95 : 1.05;
       setZoom(z => Math.min(Math.max(z * delta, 0.3), 2));
     } else {
-      // Normal scroll = pan (up/down/left/right)
       setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
     }
   }, []);
 
+  // Touch pan (mobile)
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      isPanning.current = true;
+      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPanning.current || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - lastPos.current.x;
+    const dy = e.touches[0].clientY - lastPos.current.y;
+    lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+  }, []);
+
+  const onTouchEnd = useCallback(() => { isPanning.current = false; }, []);
+
   const resetView = useCallback(() => { setPan({ x: 0, y: 0 }); setZoom(1); }, []);
 
-  return { pan, zoom, onMouseDown, onMouseMove, onMouseUp, onWheel, resetView };
+  return { pan, zoom, onMouseDown, onMouseMove, onMouseUp, onWheel, onTouchStart, onTouchMove, onTouchEnd, resetView };
 }
 
 export function useNodeDrag(onMove: (id: string, pos: NodePos) => void) {
@@ -65,7 +83,7 @@ export function useNodeDrag(onMove: (id: string, pos: NodePos) => void) {
 
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
-  }, [onMove, ]);
+  }, [onMove]);
 
   return { startDrag };
 }
