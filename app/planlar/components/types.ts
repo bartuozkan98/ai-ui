@@ -29,6 +29,14 @@ export interface TaskState { done?: boolean; assignee?: string; comments?: TaskC
 
 export interface Section { title: string; description: string; items: string[]; }
 
+export interface HavuzItem {
+  id: string;
+  metin: string;
+  kaynak: string;
+  tarih: string;
+  plan_id: string;
+}
+
 export const ASSIGNEES = ['Bartu', 'Kerem', 'Ortak'];
 export const ASSIGNEE_COLORS: Record<string, string> = {
   Bartu: 'bg-blue-100 text-blue-700 ring-blue-200',

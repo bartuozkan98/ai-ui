@@ -28,8 +28,14 @@ export function useCanvas() {
 
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.95 : 1.05;
-    setZoom(z => Math.min(Math.max(z * delta, 0.3), 2));
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd + scroll = zoom
+      const delta = e.deltaY > 0 ? 0.95 : 1.05;
+      setZoom(z => Math.min(Math.max(z * delta, 0.3), 2));
+    } else {
+      // Normal scroll = pan (up/down/left/right)
+      setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+    }
   }, []);
 
   const resetView = useCallback(() => { setPan({ x: 0, y: 0 }); setZoom(1); }, []);

@@ -1,6 +1,5 @@
 'use client';
-import { useState } from 'react';
-import { Section, TaskState, TaskComment, ASSIGNEES, ASSIGNEE_COLORS } from './types';
+import { Section, TaskState, ASSIGNEES, ASSIGNEE_COLORS } from './types';
 import { NodePos } from './canvas';
 
 interface Props {
@@ -13,21 +12,20 @@ interface Props {
   onUpdateTask: (planId: string, taskId: string, field: string, value: any) => void;
   onDelete: () => void;
   onDragStart: (id: string, pos: NodePos, e: React.MouseEvent, zoom: number) => void;
+  onOpenDetail: () => void;
   zoom: number;
   subTasks: Record<string, TaskState>;
 }
 
-export default function CanvasNode({ id, index, section, task, planId, pos, onUpdateTask, onDelete, onDragStart, zoom, subTasks }: Props) {
-  const [expanded, setExpanded] = useState(false);
-  const [comment, setComment] = useState('');
+export default function CanvasNode({ id, index, section, task, planId, pos, onUpdateTask, onDelete, onDragStart, onOpenDetail, zoom, subTasks }: Props) {
   const isDone = task.done || false;
   const taskKey = `step-${index}`;
+  const subCount = section.items.length;
+  const subDoneCount = section.items.filter((_, j) => subTasks[`step-${index}-sub-${j}`]?.done).length;
 
   return (
-    <div
-      className={`absolute select-none ${isDone ? 'opacity-70' : ''}`}
-      style={{ left: pos.x, top: pos.y, width: 320 }}
-    >
+    <div className={`absolute select-none ${isDone ? 'opacity-70' : ''}`}
+      style={{ left: pos.x, top: pos.y, width: 320 }}>
       <div className={`bg-white rounded-2xl border-2 transition-all cursor-grab active:cursor-grabbing group hover:shadow-lg ${isDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200 hover:border-indigo-300'}`}
         onMouseDown={e => onDragStart(id, pos, e, zoom)}>
 
@@ -47,6 +45,16 @@ export default function CanvasNode({ id, index, section, task, planId, pos, onUp
             </div>
           </div>
 
+          {/* Sub-task progress */}
+          {subCount > 0 && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${Math.round(subDoneCount / subCount * 100)}%` }} />
+              </div>
+              <span className="text-[10px] text-gray-400 font-medium">{subDoneCount}/{subCount}</span>
+            </div>
+          )}
+
           {/* Action bar */}
           <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
             <button onClick={e => { e.stopPropagation(); onUpdateTask(planId, taskKey, 'done', !isDone); }}
@@ -59,9 +67,9 @@ export default function CanvasNode({ id, index, section, task, planId, pos, onUp
               <option value="">Ata</option>
               {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
-            <button onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="h-8 w-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 ml-auto">
-              <svg className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            <button onClick={e => { e.stopPropagation(); onOpenDetail(); }}
+              className="h-8 px-3 rounded-lg bg-gray-100 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 text-xs font-medium transition-all ml-auto">
+              Detay
             </button>
             <button onClick={e => { e.stopPropagation(); onDelete(); }}
               className="h-8 w-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
@@ -69,35 +77,6 @@ export default function CanvasNode({ id, index, section, task, planId, pos, onUp
             </button>
           </div>
         </div>
-
-        {/* Expanded content */}
-        {expanded && (
-          <div className="px-4 pb-4 border-t border-gray-100 pt-3" onClick={e => e.stopPropagation()}>
-            {section.items.length > 0 && (
-              <div className="space-y-1">
-                {section.items.map((item, j) => {
-                  const subKey = `step-${index}-sub-${j}`;
-                  const subDone = subTasks[subKey]?.done || false;
-                  return (
-                    <div key={j} className="flex items-start gap-2 py-1">
-                      <button onClick={() => onUpdateTask(planId, subKey, 'done', !subDone)}
-                        className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${subDone ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}>
-                        {subDone && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
-                      </button>
-                      <span className={`text-xs ${subDone ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {(task.comments || []).map((c: TaskComment, ci: number) => (
-              <div key={ci} className="text-xs text-gray-500 mt-2 flex gap-1.5"><span>💬</span><span>{c.text}</span></div>
-            ))}
-            <input type="text" value={comment} onChange={e => setComment(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && comment.trim()) { onUpdateTask(planId, taskKey, 'comment', comment.trim()); setComment(''); } }}
-              placeholder="Not ekle..." className="w-full text-xs bg-gray-50 rounded-lg px-3 py-2 mt-2 outline-none focus:ring-1 focus:ring-indigo-200" />
-          </div>
-        )}
       </div>
 
       {/* Connection dot (right side) */}
