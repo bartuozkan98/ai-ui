@@ -26,7 +26,7 @@ interface TimelineMessage {
   metin: string;
   tarih: string;
   bot?: boolean;
-  source: 'telegram' | 'web';
+  source: 'telegram' | 'web' | 'permanent';
 }
 
 interface TaskComment {
@@ -251,8 +251,8 @@ export default function PlanlarPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      <div className="min-h-screen bali-gradient-soft flex items-center justify-center">
+        <div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
       </div>
     );
   }
@@ -260,20 +260,16 @@ export default function PlanlarPage() {
   // --- Chat Panel Component ---
   const ChatPanel = (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="px-4 sm:px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl flex items-center justify-center">
-            <span className="text-white text-sm font-semibold">B</span>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Bali</h3>
-            <p className="text-[10px] text-gray-400">Telegram + Web birlikte</p>
-          </div>
+      {/* Slim live indicator - no duplicate header */}
+      <div className="px-4 sm:px-5 py-2.5 border-b border-indigo-100/60 bg-gradient-to-r from-indigo-50/80 via-purple-50/60 to-pink-50/40 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 pulse-dot" />
+          <span className="text-xs font-medium text-indigo-900/70">Canli sohbet</span>
+          <span className="text-[10px] text-indigo-400">Telegram + Web</span>
         </div>
         <button
           onClick={() => setMobileChatOpen(false)}
-          className="lg:hidden w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200"
+          className="lg:hidden w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center active:scale-95 transition-all shadow-sm"
           aria-label="Kapat"
         >
           <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,12 +323,12 @@ export default function PlanlarPage() {
                     </div>
                   )}
                   <div
-                    className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap bali-shadow-sm ${
                       isWeb
-                        ? 'bg-gray-900 text-white rounded-br-md'
+                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-br-md'
                         : isBali
-                        ? 'bg-gray-100 text-gray-900 rounded-bl-md'
-                        : 'bg-blue-50 text-gray-900 rounded-bl-md'
+                        ? 'bg-white text-gray-900 rounded-bl-md ring-1 ring-gray-100'
+                        : 'bg-indigo-50/70 text-gray-900 rounded-bl-md ring-1 ring-indigo-100/50'
                     }`}
                   >
                     {m.metin}
@@ -372,22 +368,22 @@ export default function PlanlarPage() {
       </div>
 
       {/* Input */}
-      <div className="px-4 sm:px-5 py-3 border-t border-gray-100 bg-white">
-        <div className="flex gap-2 items-end">
+      <div className="px-4 sm:px-5 py-3 border-t border-gray-200/50 bg-white/90 backdrop-blur-sm">
+        <div className="flex gap-3 items-end">
           <input
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendChat()}
             placeholder="Bali'ye bir sey sor..."
-            className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 text-sm outline-none focus:bg-gray-50 focus:ring-1 focus:ring-gray-300 transition-all placeholder:text-gray-400"
+            className="flex-1 bg-gray-100/80 rounded-2xl px-5 py-3.5 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-indigo-200 transition-all placeholder:text-gray-400 bali-shadow-sm"
           />
           <button
             onClick={sendChat}
             disabled={chatSending || !chatInput.trim()}
-            className="w-11 h-11 bg-gray-900 active:bg-gray-700 disabled:bg-gray-200 rounded-full flex items-center justify-center transition-colors shrink-0"
+            className="w-12 h-12 bali-gradient active:scale-95 disabled:opacity-40 disabled:scale-100 rounded-full flex items-center justify-center transition-all shrink-0 bali-shadow-brand"
           >
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
@@ -415,7 +411,7 @@ export default function PlanlarPage() {
               setView('chat');
               setMobileChatOpen(true);
             }}
-            className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-full text-sm font-medium active:bg-gray-700"
+            className="inline-flex items-center gap-2 bali-gradient text-white px-6 py-3 rounded-full text-sm font-semibold active:scale-95 transition-transform bali-shadow-brand"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -432,10 +428,10 @@ export default function PlanlarPage() {
                 <button
                   key={p.fikir_id}
                   onClick={() => setSelectedPlan(p)}
-                  className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  className={`px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all active:scale-95 ${
                     selectedPlan?.fikir_id === p.fikir_id
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-white text-gray-600 ring-1 ring-gray-200'
+                      ? 'bali-gradient text-white bali-shadow-brand'
+                      : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-indigo-200 bali-shadow-sm'
                   }`}
                 >
                   {p.fikir_id}
@@ -447,28 +443,28 @@ export default function PlanlarPage() {
           {selectedPlan && (
             <>
               {/* Plan header card */}
-              <div className="bg-white rounded-3xl ring-1 ring-gray-200/60 p-5 sm:p-7 mb-5">
+              <div className="bg-white rounded-3xl p-5 sm:p-7 mb-5 bali-shadow-lg hover-lift">
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="flex-1">
-                    <span className="inline-block bg-gray-900 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md mb-2 tracking-wide">
+                    <span className="inline-block bali-gradient text-white text-xs font-bold px-3 py-1 rounded-lg mb-3 tracking-wide">
                       {selectedPlan.fikir_id}
                     </span>
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 tracking-tight leading-snug">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-snug">
                       {selectedPlan.fikir_metni}
                     </h2>
                   </div>
-                  <span className="text-[10px] text-gray-400 shrink-0">
+                  <span className="text-xs text-gray-400 shrink-0 bg-gray-50 px-2 py-1 rounded-lg">
                     {selectedPlan.onayland_tarih?.slice(0, 10)}
                   </span>
                 </div>
 
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-gray-500">Ilerleme</span>
-                  <span className="text-[11px] font-semibold text-gray-900">{progress}%</span>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500">Ilerleme</span>
+                  <span className="text-sm font-bold text-indigo-600">{progress}%</span>
                 </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-4">
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-4">
                   <div
-                    className="h-full bg-gray-900 rounded-full transition-all duration-700"
+                    className="h-full bali-gradient rounded-full transition-all duration-700"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -499,16 +495,16 @@ export default function PlanlarPage() {
                   return (
                     <div
                       key={i}
-                      className={`bg-white rounded-2xl ring-1 ring-gray-200/60 overflow-hidden transition-all ${
-                        isDone ? 'opacity-70' : ''
+                      className={`bg-white rounded-2xl overflow-hidden transition-all bali-shadow hover-lift ${
+                        isDone ? 'opacity-60' : ''
                       }`}
                     >
                       <div className="p-4 sm:p-5">
                         <div className="flex items-start gap-3">
                           <button
                             onClick={() => updateTask(planId, taskKey, 'done', !isDone)}
-                            className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                              isDone ? 'bg-gray-900 border-gray-900' : 'border-gray-300 active:border-gray-400'
+                            className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all active:scale-90 ${
+                              isDone ? 'bali-gradient border-indigo-500' : 'border-gray-300 active:border-indigo-400 hover:border-indigo-300'
                             }`}
                           >
                             {isDone && (
@@ -540,8 +536,8 @@ export default function PlanlarPage() {
                             <select
                               value={task.assignee || ''}
                               onChange={(e) => updateTask(planId, taskKey, 'assignee', e.target.value)}
-                              className={`text-[10px] font-medium px-2 py-1 rounded-full border-0 cursor-pointer ${
-                                task.assignee ? ASSIGNEE_COLORS[task.assignee] : 'bg-gray-100 text-gray-400'
+                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer transition-all ${
+                                task.assignee ? ASSIGNEE_COLORS[task.assignee] : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                               }`}
                             >
                               <option value="">Ata</option>
@@ -657,66 +653,69 @@ export default function PlanlarPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bali-gradient-soft">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="bali-glass border-b border-gray-200/50 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">B</span>
+            <div className="w-10 h-10 bali-gradient rounded-2xl flex items-center justify-center bali-shadow-brand">
+              <span className="text-white text-base font-bold">B</span>
             </div>
             <div>
-              <h1 className="text-base sm:text-lg font-semibold text-gray-900 tracking-tight">Bali</h1>
-              <p className="text-[10px] text-gray-400">planlar & konusmalar</p>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Bali</h1>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot" />
+                <p className="text-[11px] text-gray-500 font-medium">planlar & konusmalar</p>
+              </div>
             </div>
           </div>
 
           {/* Desktop view switcher */}
-          <div className="hidden lg:flex bg-gray-100 rounded-full p-1">
+          <div className="hidden lg:flex bg-gray-100/80 rounded-full p-1 bali-shadow-sm">
             <button
               onClick={() => setView('plans')}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                view === 'plans' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                view === 'plans' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Planlar
+              Planlar {planlar.length > 0 && <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{planlar.length}</span>}
             </button>
             <button
               onClick={() => setView('chat')}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                view === 'chat' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                view === 'chat' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Sohbet
+              Sohbet {timeline.length > 0 && <span className="ml-1 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">{timeline.length}</span>}
             </button>
           </div>
 
           {/* Mobile: chat toggle */}
           <button
             onClick={() => setMobileChatOpen(true)}
-            className="lg:hidden w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center active:bg-gray-700"
+            className="lg:hidden w-11 h-11 rounded-full bali-gradient text-white flex items-center justify-center active:scale-95 transition-transform bali-shadow-brand"
             aria-label="Sohbeti ac"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </button>
         </div>
 
         {/* Mobile tab switcher */}
-        <div className="lg:hidden border-t border-gray-100 flex bg-white">
+        <div className="lg:hidden border-t border-gray-200/50 flex bg-white/80">
           <button
             onClick={() => setView('plans')}
-            className={`flex-1 py-2.5 text-xs font-medium transition-all ${
-              view === 'plans' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400'
+            className={`flex-1 py-3 text-sm font-semibold transition-all ${
+              view === 'plans' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-400'
             }`}
           >
             Planlar {planlar.length > 0 && `(${planlar.length})`}
           </button>
           <button
             onClick={() => setView('chat')}
-            className={`flex-1 py-2.5 text-xs font-medium transition-all ${
-              view === 'chat' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400'
+            className={`flex-1 py-3 text-sm font-semibold transition-all ${
+              view === 'chat' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-400'
             }`}
           >
             Sohbet {timeline.length > 0 && `(${timeline.length})`}
@@ -736,7 +735,7 @@ export default function PlanlarPage() {
 
         {/* Always-visible chat sidebar when viewing plans */}
         {view === 'plans' && (
-          <aside className="w-[400px] shrink-0 border-l border-gray-100 h-[calc(100vh-70px)] sticky top-[70px]">
+          <aside className="w-[400px] shrink-0 border-l border-indigo-100/50 h-[calc(100vh-80px)] sticky top-[80px]">
             {ChatPanel}
           </aside>
         )}
