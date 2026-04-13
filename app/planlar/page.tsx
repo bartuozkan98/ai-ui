@@ -7,23 +7,26 @@ import CanvasNode from './components/CanvasNode';
 
 const NODE_W = 320;
 const NODE_GAP_X = 120;
-const NODE_GAP_Y = 40;
-const COLS = 3;
+const ROW_GAP = 80;
 
-function defaultPositions(count: number): Record<string, NodePos> {
+interface PlanSections { plan: Plan; sections: Section[]; }
+
+function allPositions(groups: PlanSections[]): Record<string, NodePos> {
   const p: Record<string, NodePos> = {};
-  for (let i = 0; i < count; i++) {
-    const col = i % COLS;
-    const row = Math.floor(i / COLS);
-    p[`node-${i}`] = { x: 80 + col * (NODE_W + NODE_GAP_X), y: 80 + row * (260 + NODE_GAP_Y) };
+  let yOffset = 80;
+  for (const g of groups) {
+    const labelH = 40;
+    for (let i = 0; i < g.sections.length; i++) {
+      p[`${g.plan.fikir_id}-${i}`] = { x: 80 + i * (NODE_W + NODE_GAP_X), y: yOffset + labelH };
+    }
+    const rows = Math.max(1, Math.ceil(g.sections.length / 1));
+    yOffset += labelH + rows * 260 + ROW_GAP;
   }
   return p;
 }
 
 export default function PlanlarPage() {
   const [planlar, setPlanlar] = useState<Plan[]>([]);
-  const [fikirler, setFikirler] = useState<Record<string, Fikir>>({});
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [tasks, setTasks] = useState<Record<string, Record<string, TaskState>>>({});
   const [timeline, setTimeline] = useState<TimelineMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,12 +35,13 @@ export default function PlanlarPage() {
   const [chatSending, setChatSending] = useState(false);
   const [positions, setPositions] = useState<Record<string, NodePos>>({});
   // Pool (havuz)
-  const [havuz, setHavuz] = useState<HavuzItem[]>([]);
+  const [allHavuz, setAllHavuz] = useState<Record<string, HavuzItem[]>>({});
   const [havuzOpen, setHavuzOpen] = useState(false);
   const [havuzInput, setHavuzInput] = useState('');
+  const [havuzPlanId, setHavuzPlanId] = useState('');
   const [ordering, setOrdering] = useState(false);
   // Detail modal
-  const [detailIndex, setDetailIndex] = useState<number | null>(null);
+  const [detailKey, setDetailKey] = useState<{ planId: string; index: number } | null>(null);
   const [detailComment, setDetailComment] = useState('');
 
   const canvas = useCanvas();
@@ -47,44 +51,32 @@ export default function PlanlarPage() {
   }, []);
   const nodeDrag = useNodeDrag(moveNode);
 
-  const fetchHavuz = useCallback(async (planId: string) => {
-    try {
-      const r = await fetch(`/api/havuz?plan_id=${planId}`);
-      const d = await r.json();
-      setHavuz(Array.isArray(d) ? d : []);
-    } catch { setHavuz([]); }
-  }, []);
-
   const fetchData = useCallback(async () => {
     try {
-      const [pR, tR, hR] = await Promise.all([fetch('/api/planlar'), fetch('/api/tasks'), fetch('/api/telegram-history')]);
-      const pD = await pR.json(), tD = await tR.json(), hD = await hR.json();
+      const [pR, tR, hR, hvR] = await Promise.all([fetch('/api/planlar'), fetch('/api/tasks'), fetch('/api/telegram-history'), fetch('/api/havuz')]);
+      const pD = await pR.json(), tD = await tR.json(), hD = await hR.json(), hvD = await hvR.json();
       setPlanlar(pD.planlar || []);
-      setFikirler(pD.fikirler || {});
       setTasks(tD || {});
       setTimeline(hD.messages || []);
-      setSelectedPlan(prev => {
-        const next = prev
-          ? (pD.planlar || []).find((p: Plan) => p.fikir_id === prev.fikir_id) || prev
-          : (pD.planlar || [])[0] || null;
-        if (next) fetchHavuz(next.fikir_id);
-        return next;
-      });
+      setAllHavuz(hvD && typeof hvD === 'object' && !Array.isArray(hvD) ? hvD : {});
     } catch (e) { console.error(e); } finally { setLoading(false); }
-  }, [fetchHavuz]);
+  }, []);
 
   useEffect(() => { fetchData(); const id = setInterval(fetchData, 4000); return () => clearInterval(id); }, [fetchData]);
 
-  const sections = useMemo(() => selectedPlan ? parsePlan(selectedPlan.plan_metni) : [], [selectedPlan]);
+  const groups: PlanSections[] = useMemo(() =>
+    planlar.map(p => ({ plan: p, sections: parsePlan(p.plan_metni) })), [planlar]);
+
+  const totalHavuz = useMemo(() => Object.values(allHavuz).flat(), [allHavuz]);
 
   useEffect(() => {
     setPositions(prev => {
-      const def = defaultPositions(sections.length);
+      const def = allPositions(groups);
       const merged: Record<string, NodePos> = {};
       for (const key of Object.keys(def)) merged[key] = prev[key] || def[key];
       return merged;
     });
-  }, [sections.length]);
+  }, [groups]);
 
   async function sendChat() {
     if (!chatInput.trim() || chatSending) return;
@@ -102,54 +94,57 @@ export default function PlanlarPage() {
     await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planId, taskId, field, value }) });
   }
 
-  async function savePlan(newSections: Section[]) {
-    if (!selectedPlan) return;
-    await fetch('/api/planlar', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fikir_id: selectedPlan.fikir_id, plan_metni: serializePlan(newSections) }) });
+  async function savePlanFor(planId: string, newSections: Section[]) {
+    await fetch('/api/planlar', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fikir_id: planId, plan_metni: serializePlan(newSections) }) });
     await fetchData();
   }
 
-  function deleteStage(i: number) { const s = [...sections]; s.splice(i, 1); savePlan(s); }
+  function deleteStage(planId: string, sections: Section[], i: number) {
+    const s = [...sections]; s.splice(i, 1); savePlanFor(planId, s);
+  }
 
   // Pool operations
   async function addToHavuz() {
-    if (!havuzInput.trim() || !selectedPlan) return;
-    await fetch('/api/havuz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: selectedPlan.fikir_id, metin: havuzInput.trim() }) });
+    if (!havuzInput.trim() || !havuzPlanId) return;
+    await fetch('/api/havuz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: havuzPlanId, metin: havuzInput.trim() }) });
     setHavuzInput('');
-    fetchHavuz(selectedPlan.fikir_id);
+    await fetchData();
   }
 
-  async function removeFromHavuz(itemId: string) {
-    if (!selectedPlan) return;
-    await fetch('/api/havuz', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: selectedPlan.fikir_id, item_id: itemId }) });
-    fetchHavuz(selectedPlan.fikir_id);
+  async function removeFromHavuz(planId: string, itemId: string) {
+    await fetch('/api/havuz', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: planId, item_id: itemId }) });
+    await fetchData();
   }
 
-  async function aiOrder() {
-    if (!selectedPlan || havuz.length === 0 || ordering) return;
+  async function aiOrder(planId: string) {
+    if (ordering) return;
     setOrdering(true);
     try {
-      await fetch('/api/havuz/sirala', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: selectedPlan.fikir_id }) });
+      await fetch('/api/havuz/sirala', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: planId }) });
       setPositions({});
       await fetchData();
     } catch {} finally { setOrdering(false); }
   }
 
-  // Arrow connections
+  // Arrow connections across all plans
   const arrows = useMemo(() => {
     const a: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (let i = 0; i < sections.length - 1; i++) {
-      const from = positions[`node-${i}`];
-      const to = positions[`node-${i + 1}`];
-      if (!from || !to) continue;
-      a.push({ x1: from.x + NODE_W + 2, y1: from.y + 60, x2: to.x - 2, y2: to.y + 60 });
+    for (const g of groups) {
+      for (let i = 0; i < g.sections.length - 1; i++) {
+        const from = positions[`${g.plan.fikir_id}-${i}`];
+        const to = positions[`${g.plan.fikir_id}-${i + 1}`];
+        if (!from || !to) continue;
+        a.push({ x1: from.x + NODE_W + 2, y1: from.y + 60, x2: to.x - 2, y2: to.y + 60 });
+      }
     }
     return a;
-  }, [positions, sections.length]);
+  }, [positions, groups]);
 
   // Detail modal data
-  const detailSection = detailIndex !== null ? sections[detailIndex] : null;
-  const detailTask = detailIndex !== null && selectedPlan ? (tasks[selectedPlan.fikir_id]?.[`step-${detailIndex}`] || {}) : {};
-  const detailSubTasks = selectedPlan ? (tasks[selectedPlan.fikir_id] || {}) : {};
+  const detailGroup = detailKey ? groups.find(g => g.plan.fikir_id === detailKey.planId) : null;
+  const detailSection = detailGroup ? detailGroup.sections[detailKey!.index] : null;
+  const detailTask = detailKey ? (tasks[detailKey.planId]?.[`step-${detailKey.index}`] || {}) : {};
+  const detailSubTasks = detailKey ? (tasks[detailKey.planId] || {}) : {};
 
   if (loading) return (
     <div className="h-screen bg-gray-50 flex items-center justify-center">
@@ -164,12 +159,8 @@ export default function PlanlarPage() {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bali-gradient rounded-lg flex items-center justify-center"><span className="text-white text-xs font-bold">B</span></div>
           <span className="text-sm font-bold text-gray-900">Bali</span>
-          <span className="text-xs text-gray-300">|</span>
           {planlar.length > 0 && (
-            <select value={selectedPlan?.fikir_id || ''} onChange={e => { const p = planlar.find(p => p.fikir_id === e.target.value) || null; setSelectedPlan(p); setPositions({}); if (p) fetchHavuz(p.fikir_id); }}
-              className="text-sm font-medium text-gray-700 bg-transparent border-0 cursor-pointer outline-none">
-              {planlar.map(p => <option key={p.fikir_id} value={p.fikir_id}>{p.fikir_id} — {p.fikir_metni.slice(0, 50)}</option>)}
-            </select>
+            <span className="text-xs text-gray-400">{planlar.length} plan, {groups.reduce((s, g) => s + g.sections.length, 0)} asama</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -186,27 +177,22 @@ export default function PlanlarPage() {
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 shrink-0">
         <button onClick={() => setHavuzOpen(true)} className="h-8 px-4 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-          Havuz {havuz.length > 0 && <span className="bg-amber-200 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{havuz.length}</span>}
+          Havuz {totalHavuz.length > 0 && <span className="bg-amber-200 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{totalHavuz.length}</span>}
         </button>
-        {havuz.length > 0 && (
-          <button onClick={aiOrder} disabled={ordering} className="h-8 px-4 bg-violet-50 hover:bg-violet-100 text-violet-700 disabled:opacity-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
-            {ordering ? (
-              <><div className="w-3 h-3 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" /> Siralaniyor...</>
-            ) : (
-              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> AI ile Sirala</>
-            )}
-          </button>
-        )}
-        {selectedPlan && <span className="text-xs text-gray-400">{sections.length} asama</span>}
         <div className="flex-1" />
-        {selectedPlan && sections.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${Math.round(sections.filter((_, i) => tasks[selectedPlan.fikir_id]?.[`step-${i}`]?.done).length / sections.length * 100)}%` }} />
+        {(() => {
+          const total = groups.reduce((s, g) => s + g.sections.length, 0);
+          const done = groups.reduce((s, g) => s + g.sections.filter((_, i) => tasks[g.plan.fikir_id]?.[`step-${i}`]?.done).length, 0);
+          const pct = total > 0 ? Math.round(done / total * 100) : 0;
+          return total > 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-xs font-semibold text-gray-500">{pct}%</span>
             </div>
-            <span className="text-xs font-semibold text-gray-500">{Math.round(sections.filter((_, i) => tasks[selectedPlan.fikir_id]?.[`step-${i}`]?.done).length / sections.length * 100)}%</span>
-          </div>
-        )}
+          ) : null;
+        })()}
       </div>
 
       {/* Canvas */}
@@ -234,14 +220,28 @@ export default function PlanlarPage() {
                 <line key={i} x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} stroke="#d1d5db" strokeWidth="2" markerEnd="url(#arrow)" />
               ))}
             </svg>
-            {sections.map((section, i) => (
-              <CanvasNode key={i} id={`node-${i}`} index={i} section={section}
-                task={tasks[selectedPlan?.fikir_id || '']?.[`step-${i}`] || {}}
-                planId={selectedPlan?.fikir_id || ''} pos={positions[`node-${i}`] || { x: 0, y: 0 }}
-                onUpdateTask={updateTask} onDelete={() => deleteStage(i)}
-                onDragStart={nodeDrag.startDrag} onOpenDetail={() => setDetailIndex(i)}
-                zoom={canvas.zoom} subTasks={tasks[selectedPlan?.fikir_id || ''] || {}} />
-            ))}
+            {groups.map(g => g.sections.map((section, i) => {
+              const nodeId = `${g.plan.fikir_id}-${i}`;
+              const pos = positions[nodeId] || { x: 0, y: 0 };
+              return (
+                <div key={nodeId}>
+                  {i === 0 && (
+                    <div className="absolute" style={{ left: pos.x, top: pos.y - 32 }}>
+                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">
+                        {g.plan.fikir_id} — {g.plan.fikir_metni.slice(0, 40)}
+                      </span>
+                    </div>
+                  )}
+                  <CanvasNode id={nodeId} index={i} section={section}
+                    task={tasks[g.plan.fikir_id]?.[`step-${i}`] || {}}
+                    planId={g.plan.fikir_id} pos={pos}
+                    onUpdateTask={updateTask} onDelete={() => deleteStage(g.plan.fikir_id, g.sections, i)}
+                    onDragStart={nodeDrag.startDrag} onOpenDetail={() => setDetailKey({ planId: g.plan.fikir_id, index: i })}
+                    zoom={canvas.zoom} subTasks={tasks[g.plan.fikir_id] || {}} />
+                </div>
+              );
+            }))}
+
           </div>
         )}
       </div>
@@ -259,8 +259,8 @@ export default function PlanlarPage() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
-          {havuz.length === 0 && (
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {totalHavuz.length === 0 && (
             <div className="text-center py-12">
               <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <svg className="w-7 h-7 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -269,85 +269,97 @@ export default function PlanlarPage() {
               <p className="text-xs text-gray-400 mt-1">Asama ekle, sonra AI ile sirala</p>
             </div>
           )}
-          {havuz.map(item => (
-            <div key={item.id} className="bg-gray-50 rounded-xl p-3 flex items-start gap-3 group">
-              <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800">{item.metin}</p>
-                <span className="text-[10px] text-gray-400">{item.kaynak} — {new Date(item.tarih).toLocaleDateString('tr-TR')}</span>
+          {planlar.map(p => {
+            const items = allHavuz[p.fikir_id] || [];
+            if (items.length === 0) return null;
+            return (
+              <div key={p.fikir_id}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-indigo-600">{p.fikir_id} — {p.fikir_metni.slice(0, 30)}</span>
+                  <button onClick={() => { aiOrder(p.fikir_id); setHavuzOpen(false); }} disabled={ordering}
+                    className="text-[10px] font-semibold text-violet-600 hover:text-violet-800 px-2 py-1 rounded-lg hover:bg-violet-50">
+                    {ordering ? '...' : 'AI Sirala'}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {items.map(item => (
+                    <div key={item.id} className="bg-gray-50 rounded-xl p-3 flex items-start gap-3 group">
+                      <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800">{item.metin}</p>
+                        <span className="text-[10px] text-gray-400">{item.kaynak}</span>
+                      </div>
+                      <button onClick={() => removeFromHavuz(p.fikir_id, item.id)} className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <button onClick={() => removeFromHavuz(item.id)} className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="px-5 py-4 border-t border-gray-100 space-y-3">
-          {havuz.length > 0 && (
-            <button onClick={() => { aiOrder(); setHavuzOpen(false); }} disabled={ordering}
-              className="w-full h-10 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-              {ordering ? 'Siralaniyor...' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> AI ile Sirala</>)}
-            </button>
-          )}
+          <select value={havuzPlanId} onChange={e => setHavuzPlanId(e.target.value)}
+            className="w-full text-xs font-medium bg-gray-50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-amber-200 cursor-pointer">
+            <option value="">Plan sec...</option>
+            {planlar.map(p => <option key={p.fikir_id} value={p.fikir_id}>{p.fikir_id} — {p.fikir_metni.slice(0, 40)}</option>)}
+          </select>
           <div className="flex gap-2">
             <input type="text" value={havuzInput} onChange={e => setHavuzInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addToHavuz()}
               placeholder="Yeni asama ekle..." className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-200" />
-            <button onClick={addToHavuz} disabled={!havuzInput.trim()}
+            <button onClick={addToHavuz} disabled={!havuzInput.trim() || !havuzPlanId}
               className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">Ekle</button>
           </div>
         </div>
       </div>
 
       {/* Stage Detail Modal */}
-      {detailIndex !== null && detailSection && selectedPlan && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex items-center justify-center p-4" onClick={() => { setDetailIndex(null); setDetailComment(''); }}>
+      {detailKey && detailSection && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex items-center justify-center p-4" onClick={() => { setDetailKey(null); setDetailComment(''); }}>
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            {/* Detail header */}
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-start gap-4">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-base font-bold ${detailTask.done ? 'bg-emerald-500 text-white' : 'bg-indigo-100 text-indigo-600'}`}>
                   {detailTask.done ? (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                  ) : detailIndex + 1}
+                  ) : detailKey.index + 1}
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-bold text-gray-900">{detailSection.title || `Asama ${detailIndex + 1}`}</h2>
+                  <span className="text-[10px] font-bold text-indigo-500">{detailKey.planId}</span>
+                  <h2 className="text-lg font-bold text-gray-900">{detailSection.title || `Asama ${detailKey.index + 1}`}</h2>
                   {detailSection.description && <p className="text-sm text-gray-500 mt-1 leading-relaxed">{detailSection.description}</p>}
                 </div>
-                <button onClick={() => { setDetailIndex(null); setDetailComment(''); }}
+                <button onClick={() => { setDetailKey(null); setDetailComment(''); }}
                   className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
-
-              {/* Status & assignee */}
               <div className="flex items-center gap-3 mt-4">
-                <button onClick={() => updateTask(selectedPlan.fikir_id, `step-${detailIndex}`, 'done', !detailTask.done)}
+                <button onClick={() => updateTask(detailKey.planId, `step-${detailKey.index}`, 'done', !detailTask.done)}
                   className={`h-9 px-4 rounded-lg text-xs font-semibold transition-all ${detailTask.done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'}`}>
                   {detailTask.done ? 'Tamamlandi' : 'Tamamla'}
                 </button>
                 <select value={detailTask.assignee || ''}
-                  onChange={e => updateTask(selectedPlan.fikir_id, `step-${detailIndex}`, 'assignee', e.target.value)}
+                  onChange={e => updateTask(detailKey.planId, `step-${detailKey.index}`, 'assignee', e.target.value)}
                   className={`h-9 text-xs font-semibold px-3 rounded-lg border-0 cursor-pointer ${detailTask.assignee ? ASSIGNEE_COLORS[detailTask.assignee] : 'bg-gray-100 text-gray-400'}`}>
                   <option value="">Kisi Ata</option>
                   {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
             </div>
-
-            {/* Sub-items */}
             {detailSection.items.length > 0 && (
               <div className="px-6 py-4 border-b border-gray-100">
                 <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Yapilacaklar</h4>
                 <div className="space-y-1">
                   {detailSection.items.map((item, j) => {
-                    const subKey = `step-${detailIndex}-sub-${j}`;
+                    const subKey = `step-${detailKey.index}-sub-${j}`;
                     const subDone = detailSubTasks[subKey]?.done || false;
                     return (
                       <div key={j} className="flex items-start gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
-                        <button onClick={() => updateTask(selectedPlan.fikir_id, subKey, 'done', !subDone)}
+                        <button onClick={() => updateTask(detailKey.planId, subKey, 'done', !subDone)}
                           className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${subDone ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 hover:border-indigo-400'}`}>
                           {subDone && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
                         </button>
@@ -358,25 +370,20 @@ export default function PlanlarPage() {
                 </div>
               </div>
             )}
-
-            {/* Comments */}
             <div className="px-6 py-4">
               <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Notlar</h4>
               {(detailTask.comments || []).length === 0 && <p className="text-xs text-gray-300 mb-3">Henuz not yok</p>}
               {(detailTask.comments || []).map((c: TaskComment, ci: number) => (
                 <div key={ci} className="flex gap-2 mb-2 text-sm">
                   <span className="text-gray-300 shrink-0">•</span>
-                  <div>
-                    <p className="text-gray-700">{c.text}</p>
-                    <span className="text-[10px] text-gray-300">{new Date(c.date).toLocaleString('tr-TR')}</span>
-                  </div>
+                  <div><p className="text-gray-700">{c.text}</p><span className="text-[10px] text-gray-300">{new Date(c.date).toLocaleString('tr-TR')}</span></div>
                 </div>
               ))}
               <div className="flex gap-2 mt-3">
                 <input type="text" value={detailComment} onChange={e => setDetailComment(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && detailComment.trim()) { updateTask(selectedPlan.fikir_id, `step-${detailIndex}`, 'comment', detailComment.trim()); setDetailComment(''); } }}
+                  onKeyDown={e => { if (e.key === 'Enter' && detailComment.trim()) { updateTask(detailKey.planId, `step-${detailKey.index}`, 'comment', detailComment.trim()); setDetailComment(''); } }}
                   placeholder="Not ekle..." className="flex-1 bg-gray-50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-200" />
-                <button onClick={() => { if (detailComment.trim()) { updateTask(selectedPlan.fikir_id, `step-${detailIndex}`, 'comment', detailComment.trim()); setDetailComment(''); } }}
+                <button onClick={() => { if (detailComment.trim()) { updateTask(detailKey.planId, `step-${detailKey.index}`, 'comment', detailComment.trim()); setDetailComment(''); } }}
                   disabled={!detailComment.trim()} className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">Ekle</button>
               </div>
             </div>
