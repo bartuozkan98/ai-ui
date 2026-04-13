@@ -126,6 +126,16 @@ export default function PlanlarPage() {
     } catch {} finally { setOrdering(false); }
   }
 
+  async function updateAllPlans() {
+    if (ordering) return;
+    setOrdering(true);
+    try {
+      await fetch('/api/planlar/guncelle', { method: 'POST' });
+      setPositions({});
+      await fetchData();
+    } catch {} finally { setOrdering(false); }
+  }
+
   // Arrow connections across all plans
   const arrows = useMemo(() => {
     const a: { x1: number; y1: number; x2: number; y2: number }[] = [];
@@ -179,6 +189,15 @@ export default function PlanlarPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
           Havuz {totalHavuz.length > 0 && <span className="bg-amber-200 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{totalHavuz.length}</span>}
         </button>
+        {planlar.length > 0 && (
+          <button onClick={updateAllPlans} disabled={ordering} className="h-8 px-4 bg-violet-50 hover:bg-violet-100 text-violet-700 disabled:opacity-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            {ordering ? (
+              <><div className="w-3 h-3 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" /> Guncelleniyor...</>
+            ) : (
+              <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Asamalari Guncelle</>
+            )}
+          </button>
+        )}
         <div className="flex-1" />
         {(() => {
           const total = groups.reduce((s, g) => s + g.sections.length, 0);

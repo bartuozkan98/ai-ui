@@ -31,26 +31,45 @@ export async function POST(request: Request) {
   }
 
   const havuz = readJson<Record<string, any[]>>(HAVUZ_PATH, {});
-  const items = havuz[plan_id] || [];
-  if (items.length === 0) {
-    return NextResponse.json({ error: 'Havuzda asama yok' }, { status: 400 });
-  }
+  const havuzItems = havuz[plan_id] || [];
 
-  // Get existing plan context
+  // Get existing plan context + current stages
   const iaData = readJson<{ planlar: any[] }>(IS_AKIS_PATH, { planlar: [] });
   const plan = iaData.planlar.find((p: any) => p.fikir_id === plan_id);
   const fikirMetni = plan?.fikir_metni || '';
 
-  const itemList = items.map((item: any, i: number) => `${i + 1}. ${item.metin}`).join('\n');
+  // Parse existing plan stages
+  const existingStages: string[] = [];
+  if (plan?.plan_metni) {
+    const lines = plan.plan_metni.split('\n');
+    for (const line of lines) {
+      const t = line.trim();
+      if (/^(\*\*|##|#+)/.test(t) || /^\d+\.\s+\*\*/.test(t) || /^\d+\.\s+[A-ZÇĞİÖŞÜ]/.test(t)) {
+        existingStages.push(t.replace(/^\*\*|\*\*$/g, '').replace(/^#+\s*/, '').replace(/^\d+\.\s*/, ''));
+      }
+    }
+  }
 
-  const systemPrompt = `Sen bir is plani uzmanisin. Sana bir is fikri ve bu fikir icin havuza eklenmis asamalar verilecek.
+  const allItems = [
+    ...existingStages.map(s => `[MEVCUT] ${s}`),
+    ...havuzItems.map((item: any) => `[YENI] ${item.metin}`),
+  ];
+
+  if (allItems.length === 0) {
+    return NextResponse.json({ error: 'Asama yok' }, { status: 400 });
+  }
+
+  const itemList = allItems.map((item, i) => `${i + 1}. ${item}`).join('\n');
+
+  const systemPrompt = `Sen bir is plani uzmanisin. Sana bir is fikri ve bu fikir icin mevcut asamalar + yeni eklenen asamalar verilecek.
 
 GOREV:
-- Verilen asamalari mantikli bir is akisi sirasina koy
+- [MEVCUT] etiketli olanlar zaten planda var, [YENI] olanlar yeni eklendi
+- TAMAMINI en mantikli is akisi sirasina koy
 - Her asamanin basligini net yaz
 - Her asama icin 2-3 cumlelik aciklama yaz
 - Her asama icin yapilacak alt maddeleri (3-5 adet) listele
-- Eger havuzdaki bazi asamalar birlestirilmeli veya ayrilmali ise bunu yap
+- Gerekirse bazi asamalari birlestir veya ayir
 
 FORMAT (KESINLIKLE bu formatta yaz, baska bir sey ekleme):
 **1. Asama Basligi**
@@ -78,7 +97,7 @@ Aciklama cumlesi buraya.
         max_tokens: 3000,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `IS FIKRI: ${fikirMetni}\n\nHAVUZDAKI ASAMALAR (sirasiz):\n${itemList}` },
+          { role: 'user', content: `IS FIKRI: ${fikirMetni}\n\nTUM ASAMALAR (mevcut + yeni, sirasiz):\n${itemList}` },
         ],
       }),
     });
